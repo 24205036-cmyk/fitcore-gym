@@ -1,0 +1,173 @@
+{% extends 'trainer/base.html' %}
+
+{% block title %}Client Attendance - FITCORE Trainer{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">Trainer Floor Attendance & Shift Logs</h3>
+      <p class="text-secondary small mb-0">Record your own shift check-in/out and monitor assigned client floor activity.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      {% if is_checked_in %}
+        <form method="POST" action="{{ url_for('trainer.attendance_checkout') }}" class="d-inline">
+          <button type="submit" class="btn btn-danger px-3 py-2 fw-bold shadow-sm">
+            <i class="bi bi-box-arrow-right me-1"></i> End Shift (Check Out)
+          </button>
+        </form>
+      {% else %}
+        <form method="POST" action="{{ url_for('trainer.attendance_checkin') }}" class="d-inline">
+          <button type="submit" class="btn btn-gold px-3 py-2 fw-bold shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Start Shift (Check In)
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Real-Time Trainer Shift Status Card -->
+  <div class="card card-custom p-3 mb-4" style="border-left: 4px solid {% if is_checked_in %}#10B981{% else %}var(--fc-primary-yellow){% endif %};">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          {% if is_checked_in %}
+            <span class="badge bg-success px-2 py-1"><i class="bi bi-broadcast me-1"></i> ON DUTY / INSIDE</span>
+            <span class="text-white fw-bold">Active Coaching Shift in Progress</span>
+          {% else %}
+            <span class="badge bg-secondary px-2 py-1">OFF FLOOR / NOT CHECKED IN</span>
+            <span class="text-white fw-bold">Ready to Start Today's Shift?</span>
+          {% endif %}
+        </div>
+        <div class="text-secondary small">
+          {% if is_checked_in %}
+            Checked in at <strong class="text-warning">{{ active_trainer_att.time_display }}</strong> (Date: {{ active_trainer_att.check_in_date }}).
+            Shift Elapsed:
+            <span class="live-stopwatch text-warning fw-bold font-monospace ms-1" data-checkin-iso="{{ active_trainer_att.check_in_dt.isoformat() if active_trainer_att.check_in_dt and active_trainer_att.check_in_dt.isoformat else active_trainer_att.check_in }}">
+              <i class="bi bi-stopwatch text-warning me-1"></i><span class="timer-display">00:00:00</span>
+            </span>
+          {% else %}
+            Click "Start Shift (Check In)" when arriving on gym floor so management and clients know you are available.
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        {% if is_checked_in %}
+          <form method="POST" action="{{ url_for('trainer.attendance_checkout') }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold">
+              <i class="bi bi-door-open me-1"></i> Check Out
+            </button>
+          </form>
+        {% else %}
+          <form method="POST" action="{{ url_for('trainer.attendance_checkin') }}">
+            <button type="submit" class="btn btn-gold btn-sm px-3 fw-bold">
+              <i class="bi bi-check2-circle me-1"></i> Check In Now
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card card-custom p-3 mb-4">
+    <form method="GET" action="{{ url_for('trainer.attendance') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary text-secondary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" name="search" class="form-control" placeholder="Search by Member Name or Member ID..." value="{{ search_q }}">
+        </div>
+      </div>
+      <div class="col-6 col-md-4">
+        <input type="date" name="date" class="form-control" value="{{ date_filter }}" title="Filter by Check-in Date">
+      </div>
+      <div class="col-6 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-gold btn-sm flex-grow-1 fw-bold">Filter</button>
+        {% if search_q or date_filter %}
+          <a href="{{ url_for('trainer.attendance') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Attendance Table -->
+  <div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold text-white mb-0">Attendance Log</h5>
+      <span class="badge bg-dark border border-secondary text-muted small">Read-Only Official Logs</span>
+    </div>
+
+    {% if records %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.9rem;">
+          <thead style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <tr class="text-secondary" style="font-size: 0.78rem; text-transform: uppercase;">
+              <th>Member Name & ID</th>
+              <th>Date</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Duration</th>
+              <th>Floor Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-white">{{ r.member_name or r.member_id }}</div>
+                  <div class="text-secondary small">{{ r.member_id }}</div>
+                </td>
+                <td class="text-secondary">
+                  {{ r.check_in_date or (r.check_in[:10] if r.check_in else 'N/A') }}
+                </td>
+                <td>
+                  <span class="text-warning fw-semibold">
+                    {{ r.time_display or r.check_in_time or (r.check_in[11:16] if r.check_in else 'N/A') }}
+                  </span>
+                </td>
+                <td class="text-secondary">
+                  {% if r.check_out_time or r.check_out %}
+                    <span class="text-info fw-semibold">{{ r.check_out_time or (r.check_out[11:16] if r.check_out|length > 15 else r.check_out) }}</span>
+                  {% else %}
+                    <span class="badge bg-dark border border-secondary text-muted">Active Now</span>
+                  {% endif %}
+                </td>
+                <td class="text-white">
+                  {{ r.duration_display or (r.duration_minutes ~ ' mins' if r.duration_minutes else 'In Progress') }}
+                </td>
+                <td>
+                  {% if r.status == 'Inside' %}
+                    <span class="badge bg-success">
+                      <i class="bi bi-broadcast me-1"></i> Inside Gym
+                    </span>
+                  {% else %}
+                    <span class="badge bg-dark border border-secondary text-secondary">
+                      Checked Out
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-calendar-x fs-1 mb-2 d-block text-muted"></i>
+        <h6 class="text-white">No attendance records found</h6>
+        <p class="small text-muted mb-0">
+          {% if search_q or date_filter %}
+            No check-in logs match your filter criteria.
+          {% else %}
+            Attendance check-ins for members assigned to you will be listed here.
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

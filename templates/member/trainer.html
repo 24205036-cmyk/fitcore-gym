@@ -1,0 +1,152 @@
+{% extends 'member/base.html' %}
+
+{% block title %}My Trainer - FITCORE Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">My Assigned Fitness Trainer</h3>
+      <p class="text-secondary small mb-0">Personal fitness coaching, workout routine guidance, and sessions.</p>
+    </div>
+    {% if trainer %}
+      <span class="badge bg-success px-3 py-2">
+        <i class="bi bi-person-check-fill me-1"></i> Trainer Active
+      </span>
+    {% else %}
+      <span class="badge bg-secondary px-3 py-2">
+        No Trainer Assigned
+      </span>
+    {% endif %}
+  </div>
+
+  <div class="alert alert-dark border-secondary border-opacity-25 py-2 px-3 mb-4 d-flex align-items-center justify-content-between small">
+    <div class="text-secondary">
+      <i class="bi bi-shield-lock-fill text-warning me-2"></i>
+      Personal trainer assignments and coach changes are managed exclusively by <strong>Gym Administration</strong>.
+    </div>
+    <span class="badge bg-dark text-warning border border-warning-subtle">Admin Managed</span>
+  </div>
+
+  {% if trainer %}
+    <div class="row g-4 mb-4">
+      <!-- Trainer Profile Box -->
+      <div class="col-12 col-lg-5">
+        <div class="card card-custom p-4 text-center h-100">
+          <div class="mb-3">
+            {% if trainer.photo %}
+              <img src="/static/uploads/trainers/{{ trainer.photo }}" alt="{{ trainer.name }}" class="rounded-circle" style="width: 110px; height: 110px; object-fit: cover; border: 3px solid var(--fc-primary-yellow);">
+            {% else %}
+              <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px; background: rgba(255, 199, 0, 0.15); border: 2px solid var(--fc-primary-yellow); color: var(--fc-primary-yellow); font-size: 2.8rem;">
+                <i class="bi bi-person-badge-fill"></i>
+              </div>
+            {% endif %}
+          </div>
+
+          <h4 class="fw-bold text-white mb-1">{{ trainer.name }}</h4>
+          <span class="badge" style="background: rgba(255, 199, 0, 0.2); color: var(--fc-primary-yellow); font-size: 0.82rem;">
+            {{ trainer.specialization or 'Certified Fitness Coach' }}
+          </span>
+
+          <div class="mt-4 border-top border-secondary border-opacity-25 pt-3 text-start">
+            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+              <span class="text-secondary">Experience</span>
+              <strong class="text-white">{{ trainer.experience or '3+ Years' }}</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+              <span class="text-secondary">Specialization</span>
+              <strong class="text-white">{{ trainer.specialization or 'General Fitness' }}</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+              <span class="text-secondary">Phone Contact</span>
+              <strong class="text-warning">{{ trainer.phone or 'Contact Reception' }}</strong>
+            </div>
+            <div class="d-flex justify-content-between py-2 small">
+              <span class="text-secondary">Email</span>
+              <strong class="text-white">{{ trainer.email or 'N/A' }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coaching Information -->
+      <div class="col-12 col-lg-7">
+        <div class="card card-custom p-4 h-100">
+          <h5 class="fw-bold text-white mb-3">Coaching Notes & Next Steps</h5>
+          <p class="text-secondary small mb-4">
+            Your trainer is responsible for customizing your workout routines, answering form and nutrition inquiries, and assessing fitness goals.
+          </p>
+
+          <div class="d-flex flex-column gap-3 mb-4">
+            <div class="p-3 rounded" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+              <div class="fw-semibold text-warning mb-1">
+                <i class="bi bi-chat-quote-fill me-1"></i> Trainer Communication
+              </div>
+              <div class="text-secondary small">
+                Feel free to reach out to {{ trainer.name }} during your scheduled floor visits or consult with gym front desk for session slot reservations.
+              </div>
+            </div>
+
+            <div class="p-3 rounded" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+              <div class="fw-semibold text-white mb-1">
+                <i class="bi bi-calendar-check me-1 text-warning"></i> Training Sessions
+              </div>
+              {% if schedules %}
+                <div class="table-responsive mt-2">
+                  <table class="table table-dark table-sm mb-0 small">
+                    <thead>
+                      <tr class="text-secondary">
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for s in schedules %}
+                        <tr>
+                          <td>{{ s.date }}</td>
+                          <td>{{ s.time }}</td>
+                          <td>{{ s.session_type }}</td>
+                          <td>
+                            <span class="badge {% if s.status == 'Completed' %}bg-success{% elif s.status == 'Cancelled' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                              {{ s.status }}
+                            </span>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-muted small mt-1">No scheduled 1-on-1 sessions today. Check your Workout Plans for daily routines.</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="text-end">
+            <a href="{{ url_for('member.workouts') }}" class="btn btn-gold btn-sm px-3 fw-bold">
+              <i class="bi bi-fire me-1"></i> View Assigned Workout Plan
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="card card-custom p-5 text-center">
+      <i class="bi bi-person-x fs-1 text-muted mb-3 d-block"></i>
+      <h4 class="text-white fw-bold mb-2">No Trainer Currently Assigned</h4>
+      <p class="text-secondary small mx-auto mb-4" style="max-width: 500px;">
+        You currently have access to the gym floor without a dedicated personal trainer. If you would like a personal coach for weight loss, bodybuilding, or specialized training, please contact the gym administrator.
+      </p>
+      <div>
+        <a href="{{ url_for('member.dashboard') }}" class="btn btn-outline-warning btn-sm px-4">
+          Return to Dashboard
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

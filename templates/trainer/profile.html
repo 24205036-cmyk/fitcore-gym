@@ -1,0 +1,135 @@
+{% extends 'trainer/base.html' %}
+
+{% block title %}Trainer Profile - FITCORE{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">Trainer Profile</h3>
+      <p class="text-secondary small mb-0">View your trainer credentials and update public coaching profile details.</p>
+    </div>
+    <span class="badge bg-dark border border-secondary text-warning px-3 py-2">
+      <i class="bi bi-person-badge-fill me-1"></i> Trainer ID: {{ trainer.trainer_id }}
+    </span>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Trainer Overview Card -->
+    <div class="col-12 col-lg-4">
+      <div class="card card-custom p-4 text-center">
+        <div class="mb-3">
+          {% if trainer.photo %}
+            <img src="/static/uploads/trainers/{{ trainer.photo }}" alt="{{ trainer.name }}" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid var(--fc-primary-yellow);">
+          {% else %}
+            <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px; background: rgba(255, 199, 0, 0.15); border: 2px solid var(--fc-primary-yellow); color: var(--fc-primary-yellow); font-size: 2.8rem;">
+              <i class="bi bi-person-fill"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        <h4 class="fw-bold text-white mb-1">{{ trainer.name }}</h4>
+        <div class="text-secondary small mb-3">{{ trainer.email }}</div>
+
+        <div class="d-flex justify-content-center gap-2 mb-4">
+          <span class="badge {% if trainer.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %} px-3 py-1">
+            Status: {{ trainer.status }}
+          </span>
+          <span class="badge bg-dark border border-secondary text-warning px-3 py-1">
+            Role: Trainer
+          </span>
+        </div>
+
+        <div class="border-top border-secondary border-opacity-25 pt-3 text-start">
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+            <span class="text-secondary">Specialization</span>
+            <strong class="text-warning">{{ trainer.specialization or 'Strength & Conditioning' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+            <span class="text-secondary">Experience</span>
+            <strong class="text-white">{{ trainer.experience or '4+ Years' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+            <span class="text-secondary">Joining Date</span>
+            <strong class="text-white">{{ trainer.joining_date or 'N/A' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 small">
+            <span class="text-secondary">Account Status</span>
+            <strong class="text-success">{{ trainer.status or 'Active' }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="col-12 col-lg-8">
+      <div class="card card-custom p-4">
+        <h5 class="fw-bold text-white mb-3">Edit Coaching Information</h5>
+        <p class="text-secondary small mb-4">
+          Update your contact details, coaching specialization, and bio for member consultations.
+        </p>
+
+        <form method="POST" action="{{ url_for('trainer.profile') }}">
+          <div class="row g-3">
+            <!-- Full Name (Read-only as per system rules) -->
+            <div class="col-12 col-md-6">
+              <label class="form-label text-secondary small text-uppercase fw-semibold">Trainer Full Name</label>
+              <input type="text" class="form-control" value="{{ trainer.name }}" disabled style="background-color: rgba(255,255,255,0.05); color: #a0a0a0;">
+              <small class="text-muted" style="font-size: 0.72rem;">Admin controls legal trainer names</small>
+            </div>
+
+            <!-- Email (Read-only) -->
+            <div class="col-12 col-md-6">
+              <label class="form-label text-secondary small text-uppercase fw-semibold">Email Address</label>
+              <input type="email" class="form-control" value="{{ trainer.email }}" disabled style="background-color: rgba(255,255,255,0.05); color: #a0a0a0;">
+              <small class="text-muted" style="font-size: 0.72rem;">Primary login ID</small>
+            </div>
+
+            <!-- Phone (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="phone" class="form-label text-secondary small text-uppercase fw-semibold">Phone Number *</label>
+              <input type="tel" class="form-control" id="phone" name="phone" required value="{{ trainer.phone }}">
+            </div>
+
+            <!-- Specialization (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="specialization" class="form-label text-secondary small text-uppercase fw-semibold">Specialization</label>
+              <input type="text" class="form-control" id="specialization" name="specialization" value="{{ trainer.specialization or 'Strength Training' }}">
+            </div>
+
+            <!-- Experience (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="experience" class="form-label text-secondary small text-uppercase fw-semibold">Experience</label>
+              <input type="text" class="form-control" id="experience" name="experience" value="{{ trainer.experience or '' }}" placeholder="e.g. 5 Years">
+            </div>
+
+            <!-- Gender (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="gender" class="form-label text-secondary small text-uppercase fw-semibold">Gender</label>
+              <select class="form-select" id="gender" name="gender">
+                <option value="Male" {% if trainer.gender == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if trainer.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Other" {% if trainer.gender == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+
+            <!-- Bio (Editable) -->
+            <div class="col-12">
+              <label for="bio" class="form-label text-secondary small text-uppercase fw-semibold">Professional Bio / Fitness Philosophy</label>
+              <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="Tell your clients about your background and coaching style...">{{ trainer.bio or '' }}</textarea>
+            </div>
+          </div>
+
+          <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-gold px-4 fw-bold">
+              <i class="bi bi-check2-circle me-1"></i> Update Trainer Profile
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

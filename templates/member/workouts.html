@@ -1,0 +1,123 @@
+{% extends 'member/base.html' %}
+
+{% block title %}Workout Plans - FITCORE Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">My Workout Plans</h3>
+      <p class="text-secondary small mb-0">Daily training routines and exercises prescribed by your coach.</p>
+    </div>
+    <span class="badge bg-dark border border-secondary text-warning px-3 py-2">
+      <i class="bi bi-fire me-1"></i> Total Plans: {{ workouts|length }}
+    </span>
+  </div>
+
+  {% if workouts %}
+    <div class="row g-4">
+      {% for w in workouts %}
+        <div class="col-12 col-lg-6">
+          <div class="card card-custom p-4 h-100 d-flex flex-column justify-content-between" style="border-left: 4px solid {% if w.status == 'completed' %}#10B981{% else %}var(--fc-primary-yellow){% endif %};">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h4 class="fw-bold text-white mb-0">{{ w.title or w.workout_name }}</h4>
+                  <div class="text-secondary small mt-1">
+                    <i class="bi bi-calendar-event text-warning me-1"></i> <span class="text-warning fw-semibold">{{ w.workout_date or (w.created_at.strftime('%Y-%m-%d') if w.created_at else 'Today') }}</span>
+                    <span class="ms-2">Coach: <strong class="text-white">{{ w.trainer_name or 'Trainer' }}</strong></span>
+                  </div>
+                </div>
+                {% if w.status == 'completed' %}
+                  <span class="badge bg-success px-2 py-1">
+                    <i class="bi bi-check-circle-fill me-1"></i> Completed
+                  </span>
+                {% else %}
+                  <span class="badge bg-warning text-dark fw-bold px-2 py-1">
+                    <i class="bi bi-hourglass-split me-1"></i> Assigned
+                  </span>
+                {% endif %}
+              </div>
+
+              <!-- Exercises Breakdown -->
+              <div class="p-3 my-3 rounded" style="background: rgba(18, 22, 27, 0.7); border: 1px solid rgba(255, 255, 255, 0.05);">
+                <div class="text-secondary small text-uppercase fw-semibold mb-2">Prescribed Exercises</div>
+                {% if w.exercises and w.exercises|length > 0 %}
+                  <div class="d-flex flex-column gap-2">
+                    {% for ex in w.exercises %}
+                      <div class="d-flex justify-content-between align-items-center pb-1 border-bottom border-secondary border-opacity-10">
+                        <div>
+                          <strong class="text-white">{{ ex.name }}</strong>
+                          {% if ex.notes %}
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ ex.notes }}</div>
+                          {% endif %}
+                        </div>
+                        <div class="text-end">
+                          <span class="text-warning fw-semibold">{{ ex.sets }} &times; {{ ex.reps }}</span>
+                          {% if ex.duration %}
+                            <span class="text-secondary small ms-1">({{ ex.duration }})</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold">{{ w.exercise }}</span>
+                    <span class="text-warning fw-semibold">{{ w.sets or 3 }} &times; {{ w.repetitions or '12' }}</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              {% if w.trainer_notes or w.notes %}
+                <div class="text-secondary small mb-3">
+                  <span class="text-muted">Coach Notes:</span>
+                  <span class="text-white">{{ w.trainer_notes or w.notes }}</span>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Footer Action & Status -->
+            <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center mt-3">
+              {% if w.status == 'completed' %}
+                <div class="text-success fw-bold d-flex align-items-center gap-1">
+                  <i class="bi bi-check-circle-fill"></i>
+                  <span>✓ Workout Completed</span>
+                </div>
+                <small class="text-success fw-semibold">
+                  {{ w.completed_time or (w.completed_at.strftime('%d %b %Y, %I:%M %p') if w.completed_at else 'Completed') }}
+                </small>
+              {% else %}
+                <span class="text-secondary small">
+                  Ready for today's session
+                </span>
+                <form method="POST" action="{{ url_for('member.complete_workout', workout_id=w.workout_id or w._id) }}">
+                  <button type="submit" class="btn btn-gold btn-sm px-3 fw-bold">
+                    <i class="bi bi-check2-circle me-1"></i> MARK WORKOUT COMPLETED
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card card-custom p-5 text-center">
+      <i class="bi bi-fire fs-1 text-muted mb-3 d-block"></i>
+      <h4 class="text-white fw-bold mb-2">No Workout Plans Yet</h4>
+      <p class="text-secondary small mx-auto mb-4" style="max-width: 500px;">
+        Your assigned trainer has not uploaded a workout schedule for your account yet. Check back soon or contact your trainer directly.
+      </p>
+      <div>
+        <a href="{{ url_for('member.trainer') }}" class="btn btn-outline-warning btn-sm px-4">
+          Contact My Trainer
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

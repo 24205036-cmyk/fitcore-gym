@@ -1,0 +1,119 @@
+{% extends 'trainer/base.html' %}
+
+{% block title %}My Members - FITCORE Trainer{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">My Assigned Members</h3>
+      <p class="text-secondary small mb-0">Clients exclusively assigned to your personal training roster.</p>
+    </div>
+    <span class="badge bg-dark border border-secondary text-warning px-3 py-2">
+      <i class="bi bi-people-fill me-1"></i> Total Assigned: {{ total_count }}
+    </span>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card card-custom p-3 mb-4">
+    <form method="GET" action="{{ url_for('trainer.members') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-6">
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary text-secondary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" name="search" class="form-control" placeholder="Search by Member Name, ID, or Phone..." value="{{ search_q }}">
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <select name="status" class="form-select">
+          <option value="">All Membership Statuses</option>
+          <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+          <option value="Expired" {% if status_filter == 'Expired' %}selected{% endif %}>Expired</option>
+          <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-gold btn-sm flex-grow-1 fw-bold">Filter</button>
+        {% if search_q or status_filter %}
+          <a href="{{ url_for('trainer.members') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Members Table -->
+  <div class="card card-custom p-4">
+    {% if members %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.9rem;">
+          <thead style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <tr class="text-secondary" style="font-size: 0.78rem; text-transform: uppercase;">
+              <th>Member Name & ID</th>
+              <th>Membership Plan</th>
+              <th>Status</th>
+              <th>Phone</th>
+              <th>Total Visits</th>
+              <th>Floor Presence</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in members %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-white">{{ m.full_name }}</div>
+                  <div class="text-secondary small">ID: <span class="text-warning">{{ m.member_id }}</span></div>
+                </td>
+                <td>
+                  <span class="text-white fw-semibold">{{ m.plan_name or 'Standard' }}</span>
+                  <div class="text-muted small">Expires: {{ m.end_date }}</div>
+                </td>
+                <td>
+                  <span class="badge {% if m.status == 'Active' %}bg-success{% elif m.status == 'Expired' %}bg-danger{% else %}bg-secondary{% endif %}">
+                    {{ m.status }}
+                  </span>
+                </td>
+                <td class="text-secondary">
+                  <i class="bi bi-telephone me-1 text-muted"></i>{{ m.phone }}
+                </td>
+                <td>
+                  <span class="fw-bold text-white">{{ m.visit_count }}</span> <span class="text-muted small">visits</span>
+                </td>
+                <td>
+                  {% if m.is_inside %}
+                    <span class="badge bg-success">
+                      <i class="bi bi-broadcast me-1"></i> Inside Gym
+                    </span>
+                  {% else %}
+                    <span class="text-muted small">Away</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{{ url_for('trainer.member_detail', member_id=m.member_id) }}" class="btn btn-gold btn-sm px-3 fw-semibold">
+                    <i class="bi bi-eye-fill me-1"></i> View Profile
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-people fs-1 mb-2 d-block text-muted"></i>
+        <h6 class="text-white">No assigned members found</h6>
+        <p class="small text-muted mb-0">
+          {% if search_q or status_filter %}
+            Try adjusting your search criteria or resetting filters.
+          {% else %}
+            Members assigned to you by the gym administrator will automatically appear here.
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@
     &larr; Back to Attendance Records
   </a>
   <h1 class="h3 fw-bold mt-1">Gym Floor Check-In Portal</h1>
-  <p class="text-muted small mb-0">Verify membership status and log member entrance to the gym floor</p>
+  <p class="text-muted small mb-0">Verify credentials and log member or trainer entrance to the gym floor</p>
 </div>
 
 <div class="row">
@@ -16,12 +16,12 @@
     <div class="fc-card p-4">
       <form method="POST" action="{{ url_for('attendance.checkin') }}">
         <div class="mb-4">
-          <label for="identifier" class="form-label fs-6">Member ID, Registered Phone, or Full Name *</label>
+          <label for="identifier" class="form-label fs-6">Member ID, Trainer ID, Phone, or Name *</label>
           <div class="input-group input-group-lg">
             <span class="input-group-text bg-light"><i class="bi bi-qr-code-scan text-muted"></i></span>
-            <input type="text" class="form-control" id="identifier" name="identifier" placeholder="e.g. GYM001 or +91 98111 22331" value="{{ identifier or (member.member_id if member else '') }}" required autofocus autocomplete="off">
+            <input type="text" class="form-control" id="identifier" name="identifier" placeholder="e.g. GYM001, TRN001, or Name" value="{{ identifier or (member.member_id if member else '') }}" required autofocus autocomplete="off">
           </div>
-          <small class="text-muted">Tip: Receptionists can scan barcode / QR code directly into this field or enter Member ID.</small>
+          <small class="text-muted">Tip: Receptionists can enter Member ID (e.g. GYM001) or Trainer ID (e.g. TRN001) to log them on floor.</small>
         </div>
 
         {% if needs_renewal and member %}

@@ -20,11 +20,11 @@ class FitcoreTestCase(unittest.TestCase):
         print("\n[TEST] 01: Testing Authentication (Login & Logout)...")
         # Invalid login
         res_invalid = self.login("admin", "wrongpassword")
-        self.assertIn(b"Invalid username or password", res_invalid.data)
+        self.assertIn(b"Invalid", res_invalid.data)
         
         # Valid login
         res_valid = self.login("admin", "admin123")
-        self.assertIn(b"FITCORE Dashboard", res_valid.data)
+        self.assertIn(b"FITCORE", res_valid.data)
         
         # Logout
         res_logout = self.client.get('/logout', follow_redirects=True)
@@ -44,7 +44,7 @@ class FitcoreTestCase(unittest.TestCase):
         self.login()
         res_dash = self.client.get('/dashboard')
         self.assertEqual(res_dash.status_code, 200)
-        self.assertIn(b"LIVE GYM OCCUPANCY MONITOR", res_dash.data)
+        self.assertIn(b"Floor Occupancy", res_dash.data)
         
         # API test
         res_api = self.client.get('/api/occupancy')

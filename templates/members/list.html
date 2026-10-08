@@ -100,20 +100,20 @@
               {% endif %}
             </td>
             <td>
-              <span class="badge bg-light text-dark border fw-bold">{{ m.member_id }}</span>
+              <span class="badge" style="background: rgba(255, 208, 0, 0.15); color: var(--fc-primary-yellow); border: 1px solid rgba(255, 208, 0, 0.3); font-weight: 700;">{{ m.member_id }}</span>
             </td>
             <td>
-              <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="fw-bold text-dark text-decoration-none">
+              <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="fw-bold text-white text-decoration-none">
                 {{ m.full_name }}
               </a>
-              <div class="text-muted small">{{ m.gender }} • {{ m.age or '-' }} yrs</div>
+              <div class="text-secondary small">{{ m.gender }} • {{ m.age or '-' }} yrs</div>
             </td>
             <td>
-              <div>{{ m.phone }}</div>
-              <small class="text-muted">{{ m.email or '-' }}</small>
+              <div class="text-white">{{ m.phone }}</div>
+              <small class="text-secondary">{{ m.email or '-' }}</small>
             </td>
             <td>
-              <span class="badge bg-light text-primary border">{{ m.plan_name }}</span>
+              <span class="badge bg-dark border border-secondary text-warning">{{ m.plan_name }}</span>
             </td>
             <td>
               <div class="{% if m.status == 'Expired' %}text-danger fw-bold{% endif %}">
@@ -121,9 +121,18 @@
               </div>
             </td>
             <td>
-              <span class="text-muted small">
-                {{ m.trainer_name or 'None' }}
-              </span>
+              <div class="d-flex align-items-center gap-1">
+                {% if m.trainer_id %}
+                  <span class="text-white small fw-semibold">{{ m.trainer_name }}</span>
+                  <button type="button" class="btn btn-sm text-warning p-0 ms-1" data-bs-toggle="modal" data-bs-target="#changeTrainerModal{{ m.member_id }}" title="Change Trainer (Admin Only)">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                {% else %}
+                  <button type="button" class="btn btn-outline-warning btn-sm py-0 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#changeTrainerModal{{ m.member_id }}">
+                    <i class="bi bi-person-plus me-1"></i> Assign
+                  </button>
+                {% endif %}
+              </div>
             </td>
             <td>
               {% if m.status == 'Active' %}
@@ -138,20 +147,130 @@
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
-                <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="btn btn-light border" title="View Profile">
+                <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="btn btn-dark-outline" title="View Profile">
                   <i class="bi bi-eye"></i>
                 </a>
-                <a href="{{ url_for('members.edit_member', member_id=m.member_id) }}" class="btn btn-light border" title="Edit Member">
+                <button type="button" class="btn btn-dark-outline text-warning" data-bs-toggle="modal" data-bs-target="#changeTrainerModal{{ m.member_id }}" title="Change Trainer (Admin Only)">
+                  <i class="bi bi-person-gear"></i>
+                </button>
+                <a href="{{ url_for('members.edit_member', member_id=m.member_id) }}" class="btn btn-dark-outline" title="Edit Member">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <a href="{{ url_for('members.renew_member', member_id=m.member_id) }}" class="btn btn-light border text-primary" title="Renew Plan">
+                <a href="{{ url_for('members.renew_member', member_id=m.member_id) }}" class="btn btn-dark-outline text-warning" title="Renew Plan">
                   <i class="bi bi-arrow-repeat"></i>
                 </a>
-                <form method="POST" action="{{ url_for('members.delete_member', member_id=m.member_id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate or remove {{ m.full_name }}?');">
-                  <button type="submit" class="btn btn-light border text-danger" title="Deactivate / Delete">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </form>
+                <button type="button" class="btn btn-dark-outline text-danger" data-bs-toggle="modal" data-bs-target="#deleteMemberModal{{ m.member_id }}" title="Delete Member">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+
+              <!-- Change Trainer Modal (Admin Only) -->
+              <div class="modal fade text-start" id="changeTrainerModal{{ m.member_id }}" tabindex="-1" aria-labelledby="changeTrainerLabel{{ m.member_id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+                    <div class="modal-header border-secondary border-opacity-25">
+                      <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="changeTrainerLabel{{ m.member_id }}">
+                        <i class="bi bi-person-gear text-warning"></i> Change Trainer: {{ m.full_name }}
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('members.change_trainer', member_id=m.member_id) }}">
+                      <div class="modal-body p-4">
+                        <div class="p-3 rounded mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                          <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-secondary">Member:</span>
+                            <strong class="text-white">{{ m.full_name }} ({{ m.member_id }})</strong>
+                          </div>
+                          <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-secondary">Current Coach:</span>
+                            <span class="text-warning fw-semibold">{{ m.trainer_name or 'None Assigned' }}</span>
+                          </div>
+                          <div class="d-flex justify-content-between small">
+                            <span class="text-secondary">Fitness Goal:</span>
+                            <span class="badge bg-warning text-dark">{{ m.fitness_goal or 'General Fitness' }}</span>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="selectTrainer{{ m.member_id }}" class="form-label text-secondary small fw-semibold text-uppercase">
+                            Assign Trainer (Admin Only) *
+                          </label>
+                          <select class="form-select" id="selectTrainer{{ m.member_id }}" name="trainer_id">
+                            <option value="">-- No Trainer (Unassign) --</option>
+                            {% for t in trainers %}
+                              <option value="{{ t.trainer_id }}" {% if m.trainer_id == t.trainer_id %}selected{% endif %}>
+                                {{ t.name }} ({{ t.specialization or 'Fitness Coach' }})
+                              </option>
+                            {% endfor %}
+                          </select>
+                          <div class="form-text text-muted small mt-1">
+                            Only administrators can change trainer assignments. The coach and member will receive an automatic notification.
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-gold btn-sm px-3 fw-bold">
+                          <i class="bi bi-check2-circle me-1"></i> Update Trainer Assignment
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Delete Member Options Modal -->
+              <div class="modal fade text-start" id="deleteMemberModal{{ m.member_id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ m.member_id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+                    <div class="modal-header border-secondary border-opacity-25">
+                      <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="deleteModalLabel{{ m.member_id }}">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Delete Member: {{ m.full_name }}
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                      <p class="mb-3 text-secondary">
+                        Choose an action for member <strong class="text-white">{{ m.full_name }}</strong> (ID: <span class="text-warning">{{ m.member_id }}</span>):
+                      </p>
+
+                      <!-- Option 1: Complete Delete -->
+                      <div class="p-3 rounded mb-3" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <strong class="text-danger d-flex align-items-center gap-2 mb-1">
+                          <i class="bi bi-trash3-fill"></i> Option 1: Delete Member Completely
+                        </strong>
+                        <div class="small text-secondary">
+                          Permanently wipes the member profile, login account, attendance history, and workout assignments from the database. <span class="text-white fw-bold">This cannot be undone.</span>
+                        </div>
+                      </div>
+
+                      <!-- Option 2: Deactivate -->
+                      <div class="p-3 rounded" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <strong class="text-warning d-flex align-items-center gap-2 mb-1">
+                          <i class="bi bi-pause-circle-fill"></i> Option 2: Deactivate Account Only
+                        </strong>
+                        <div class="small text-secondary">
+                          Blocks login and marks the member as Inactive while keeping attendance and payment logs for gym records.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="modal-footer border-secondary border-opacity-25 d-flex justify-content-between">
+                      <form method="POST" action="{{ url_for('members.delete_member', member_id=m.member_id) }}">
+                        <input type="hidden" name="mode" value="deactivate">
+                        <button type="submit" class="btn btn-outline-warning btn-sm">
+                          <i class="bi bi-pause-circle me-1"></i> Deactivate Only
+                        </button>
+                      </form>
+
+                      <form method="POST" action="{{ url_for('members.delete_member', member_id=m.member_id) }}">
+                        <input type="hidden" name="mode" value="permanent">
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold">
+                          <i class="bi bi-trash3-fill me-1"></i> Delete Completely
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>

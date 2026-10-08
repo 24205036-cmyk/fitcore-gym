@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, session, redirect, url_for
 from database import get_db
 from utils.decorators import login_required
 from utils.helpers import (
@@ -73,8 +73,22 @@ def get_dashboard_data():
     # Recent notifications
     notifications = list(db.notifications.find().sort("created_at", -1).limit(5))
     
-    # Currently inside members list for live preview widget
-    inside_members = list(db.attendance.find({"status": "Inside"}).sort("check_in", -1).limit(10))
+    # Currently inside attendees list (both members & trainers) for live preview widget
+    inside_members = list(db.attendance.find({"status": "Inside"}).sort("check_in", -1).limit(15))
+    for item in inside_members:
+        is_trn = (item.get('person_type') == 'trainer') or (bool(item.get('trainer_id')) and not bool(item.get('member_id')))
+        item['is_trainer'] = is_trn
+        item['person_role'] = "Trainer" if is_trn else "Member"
+        item['person_name'] = (item.get('trainer_name') if is_trn else item.get('member_name')) or item.get('name') or ('Trainer' if is_trn else 'Member')
+        item['person_id'] = item.get('trainer_id') if is_trn else (item.get('member_id') or item.get('trainer_id'))
+        item['subtext'] = item.get('specialization', 'Fitness Coach') if is_trn else (item.get('plan_name') or 'Standard Plan')
+        cin_dt = item.get('check_in_dt')
+        if cin_dt and hasattr(cin_dt, 'isoformat'):
+            item['check_in_iso'] = cin_dt.isoformat()
+        elif item.get('check_in'):
+            item['check_in_iso'] = str(item['check_in']).replace(' ', 'T')
+        else:
+            item['check_in_iso'] = ''
     
     gym_open = is_gym_open(settings)
 
@@ -102,6 +116,12 @@ def get_dashboard_data():
 @dashboard_bp.route('/dashboard')
 @login_required
 def index():
+    user_role = str(session.get('role', 'admin')).lower()
+    if user_role == 'trainer':
+        return redirect(url_for('trainer.dashboard'))
+    elif user_role == 'member':
+        return redirect(url_for('member.dashboard'))
+        
     data = get_dashboard_data()
     return render_template('dashboard.html', **data)
 

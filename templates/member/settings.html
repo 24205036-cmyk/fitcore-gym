@@ -1,0 +1,78 @@
+{% extends 'member/base.html' %}
+
+{% block title %}Account Settings - FITCORE Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">Account Settings</h3>
+      <p class="text-secondary small mb-0">Manage your member login credentials and security preferences.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <div class="card card-custom p-4">
+        <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+          <i class="bi bi-key-fill text-warning"></i> Change Account Password
+        </h5>
+        <p class="text-secondary small mb-4">
+          Ensure your password contains at least 6 characters. Do not share your login credentials with others.
+        </p>
+
+        <form method="POST" action="{{ url_for('member.settings') }}">
+          <input type="hidden" name="action" value="change_password">
+
+          <div class="mb-3">
+            <label for="current_password" class="form-label text-secondary small text-uppercase fw-semibold">Current Password *</label>
+            <input type="password" class="form-control" id="current_password" name="current_password" required placeholder="Enter current password">
+          </div>
+
+          <div class="mb-3">
+            <label for="new_password" class="form-label text-secondary small text-uppercase fw-semibold">New Password * (min 6 characters)</label>
+            <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6" placeholder="Create new password">
+          </div>
+
+          <div class="mb-4">
+            <label for="confirm_password" class="form-label text-secondary small text-uppercase fw-semibold">Confirm New Password *</label>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Repeat new password">
+          </div>
+
+          <button type="submit" class="btn btn-gold px-4 fw-bold">
+            <i class="bi bi-shield-check me-1"></i> Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      <div class="card card-custom p-4 h-100">
+        <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+          <i class="bi bi-shield-lock text-warning"></i> Security & Session Status
+        </h5>
+
+        <div class="p-3 rounded mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div class="text-secondary small text-uppercase">Account Identifier</div>
+          <div class="text-white fw-bold fs-6 mt-1">{{ member.email }}</div>
+          <div class="text-muted small">Linked Member ID: {{ member.member_id }}</div>
+        </div>
+
+        <div class="p-3 rounded mb-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div class="text-secondary small text-uppercase">Role Authorization</div>
+          <div class="text-warning fw-bold fs-6 mt-1">MEMBER</div>
+          <div class="text-muted small">Standard Gym Floor & Fitness Member Privileges</div>
+        </div>
+
+        <div class="border-top border-secondary border-opacity-25 pt-3 mt-auto">
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
+            <i class="bi bi-box-arrow-right"></i> Terminate Session & Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

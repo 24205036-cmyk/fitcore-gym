@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from bson import ObjectId
 from datetime import datetime, timedelta
 from database import get_db
 from utils.decorators import login_required
-from utils.ids import get_next_member_id, get_next_payment_id
+from utils.ids import get_next_member_id, get_next_payment_id, get_next_user_id
+from utils.auth import hash_password
 from utils.helpers import (
     get_now, format_date, format_datetime, format_currency,
     calculate_member_status, save_uploaded_file
@@ -137,8 +138,9 @@ def add_member():
             if trainer:
                 trainer_name = trainer.get('name', 'None')
                 
-        # Generate readable Member ID
+        # Generate readable Member ID and User ID
         member_id = get_next_member_id()
+        user_id = get_next_user_id()
         
         # Check payment option
         record_payment = form.get('record_payment') == 'yes'
@@ -147,6 +149,7 @@ def add_member():
         
         new_member = {
             "member_id": member_id,
+            "user_id": user_id,
             "full_name": form.get('full_name', '').strip(),
             "photo": photo_path,
             "age": int(form.get('age', 0)) if form.get('age') else None,
@@ -170,6 +173,27 @@ def add_member():
         }
         
         db.members.insert_one(new_member)
+        
+        # Sync with users collection for Member login
+        db.users.update_one(
+            {"$or": [{"email": new_member["email"]}, {"member_id": member_id}]},
+            {
+                "$setOnInsert": {
+                    "user_id": user_id,
+                    "member_id": member_id,
+                    "password": hash_password(form.get('password') or "member123"),
+                    "created_at": get_now()
+                },
+                "$set": {
+                    "name": new_member["full_name"],
+                    "email": new_member["email"],
+                    "phone": new_member["phone"],
+                    "role": "member",
+                    "status": "active"
+                }
+            },
+            upsert=True
+        )
         
         # If recording initial payment
         if record_payment:
@@ -246,6 +270,9 @@ def view_member(member_id):
     # Is currently inside?
     active_checkin = db.attendance.find_one({"member_id": member_id, "status": "Inside"})
 
+    # Active trainers for assignment modal (Admin only)
+    trainers = list(db.trainers.find({"status": "Active"}).sort("name", 1))
+
     return render_template(
         'members/view.html',
         member=member,
@@ -259,7 +286,8 @@ def view_member(member_id):
         pending_amount_formatted=format_currency(pending_amount),
         last_payment=last_payment,
         is_inside=bool(active_checkin),
-        active_checkin=active_checkin
+        active_checkin=active_checkin,
+        trainers=trainers
     )
 
 @members_bp.route('/<member_id>/edit', methods=['GET', 'POST'])
@@ -319,6 +347,22 @@ def edit_member(member_id):
             update_data["end_date"] = form.get('end_date')
             
         db.members.update_one({"member_id": member_id}, {"$set": update_data})
+        
+        # Keep users collection synchronized
+        member_status = str(update_data.get('status', 'Active')).lower()
+        user_status = "active" if member_status == "active" else "inactive"
+        db.users.update_one(
+            {"member_id": member_id},
+            {
+                "$set": {
+                    "name": update_data["full_name"],
+                    "email": update_data["email"],
+                    "phone": update_data["phone"],
+                    "status": user_status
+                }
+            }
+        )
+        
         flash(f"Member details for {update_data['full_name']} updated successfully.", 'success')
         return redirect(url_for('members.view_member', member_id=member_id))
         
@@ -418,17 +462,51 @@ def delete_member(member_id):
         flash("Member not found.", 'danger')
         return redirect(url_for('members.list_members'))
         
-    # Check if member has attendance or payments
-    has_attendance = db.attendance.count_documents({"member_id": member_id}) > 0
-    has_payments = db.payments.count_documents({"member_id": member_id}) > 0
+    delete_mode = request.form.get('mode', 'permanent').lower()
+    full_name = member.get('full_name', 'Member')
     
-    if has_attendance or has_payments:
-        # Safe deactivate to protect financial and audit history
+    if delete_mode == 'deactivate':
+        # Deactivate only: preserve records
         db.members.update_one({"member_id": member_id}, {"$set": {"status": "Inactive", "updated_at": get_now()}})
-        flash(f"Member {member.get('full_name')} has attendance/financial history and was safely set to Inactive.", 'warning')
+        db.users.update_one({"member_id": member_id}, {"$set": {"status": "inactive"}})
+        flash(f"Member {full_name} ({member_id}) was deactivated.", 'warning')
     else:
+        # COMPLETE PERMANENT DELETION
+        member_email = member.get("email")
+        
+        # 1. Delete member profile
         db.members.delete_one({"member_id": member_id})
-        flash(f"Member {member.get('full_name')} was permanently removed.", 'info')
+        
+        # 2. Delete login user account
+        user_query = {"$or": [{"member_id": member_id}]}
+        if member_email:
+            user_query["$or"].append({"email": member_email})
+        db.users.delete_many(user_query)
+        
+        # 3. Delete attendance records
+        db.attendance.delete_many({"member_id": member_id})
+        
+        # 4. Delete payment records
+        db.payments.delete_many({"member_id": member_id})
+        
+        # 5. Delete workout plans
+        db.workout_plans.delete_many({"member_id": member_id})
+        
+        # 6. Delete training schedules
+        db.schedules.delete_many({"member_id": member_id})
+        
+        # 7. Delete member notifications
+        db.notifications.delete_many({"member_id": member_id})
+        
+        # 8. Log deletion notification for Admin
+        log_notification(
+            title="Member Completely Deleted",
+            message=f"{full_name} ({member_id}) and all associated records were permanently deleted.",
+            notif_type="danger",
+            link="/members"
+        )
+        
+        flash(f"Member {full_name} ({member_id}) and all associated records were completely deleted from the database.", 'success')
         
     return redirect(url_for('members.list_members'))
 
@@ -474,3 +552,278 @@ def api_search_members():
             "end_date": m.get("end_date")
         })
     return jsonify({"success": True, "count": len(results), "members": results})
+
+@members_bp.route('/requests')
+@login_required
+def member_requests():
+    db = get_db()
+    status_filter = request.args.get('status', 'Pending').strip()
+    
+    query = {}
+    if status_filter == 'Pending':
+        query["status"] = {"$in": ["Pending", "pending"]}
+    elif status_filter == 'Rejected':
+        query["status"] = {"$in": ["Rejected", "rejected"]}
+    elif status_filter == 'Approved':
+        query["approval_status"] = "approved"
+    else:
+        # All
+        query["status"] = {"$in": ["Pending", "pending", "Rejected", "rejected", "Active", "active"]}
+        
+    requests_list = list(db.members.find(query).sort("created_at", -1))
+    
+    # Active trainers available for assignment
+    trainers = list(db.trainers.find({"status": {"$in": ["Active", "active"]}}).sort("name", 1))
+    
+    pending_count = db.members.count_documents({"status": {"$in": ["Pending", "pending"]}})
+    rejected_count = db.members.count_documents({"status": {"$in": ["Rejected", "rejected"]}})
+    
+    return render_template(
+        'members/requests.html',
+        requests=requests_list,
+        trainers=trainers,
+        status_filter=status_filter,
+        pending_count=pending_count,
+        rejected_count=rejected_count
+    )
+
+@members_bp.route('/requests/<member_id>/accept', methods=['POST'])
+@login_required
+def accept_member_request(member_id):
+    db = get_db()
+    member = db.members.find_one({"member_id": member_id})
+    if not member:
+        flash("Member request not found.", 'danger')
+        return redirect(url_for('members.member_requests'))
+        
+    trainer_id = request.form.get('trainer_id', '').strip()
+    trainer = db.trainers.find_one({"trainer_id": trainer_id})
+    if not trainer:
+        flash("Please select a valid active trainer to assign to this member.", 'danger')
+        return redirect(url_for('members.member_requests'))
+        
+    now = get_now()
+    assignment_date = now.strftime("%d %b %Y")
+    
+    # Update Member document
+    db.members.update_one(
+        {"member_id": member_id},
+        {"$set": {
+            "status": "Active",
+            "approval_status": "approved",
+            "trainer_id": trainer["trainer_id"],
+            "trainer_name": trainer.get("name", "Trainer"),
+            "approved_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    # Update User document
+    db.users.update_one(
+        {"$or": [{"member_id": member_id}, {"email": member.get("email")}]},
+        {"$set": {
+            "status": "active",
+            "trainer_id": trainer["trainer_id"],
+            "trainer_name": trainer.get("name", "Trainer"),
+            "updated_at": now
+        }}
+    )
+    
+    # 1. Trainer receives notification: "New member assigned to you."
+    fitness_goal = member.get('fitness_goal') or 'General Fitness'
+    db.notifications.insert_one({
+        "title": "New member assigned to you.",
+        "message": f"Member Name: {member.get('full_name')}, Member ID: {member_id}, Fitness Goal: {fitness_goal}, Assigned: {assignment_date}",
+        "trainer_id": trainer["trainer_id"],
+        "type": "info",
+        "link": f"/trainer/members/{member_id}",
+        "is_read": False,
+        "created_at": now
+    })
+    
+    # 2. Member receives notification: "Your registration has been approved."
+    db.notifications.insert_one({
+        "title": "Your registration has been approved.",
+        "message": f"Welcome to FITCORE! Your registration for {member.get('plan_name', 'membership')} has been approved.",
+        "member_id": member_id,
+        "type": "success",
+        "link": "/member/dashboard",
+        "is_read": False,
+        "created_at": now
+    })
+    
+    # 3. Member receives notification: "Your trainer has been assigned."
+    db.notifications.insert_one({
+        "title": "Your trainer has been assigned.",
+        "message": f"Your Trainer: {trainer.get('name')}",
+        "member_id": member_id,
+        "type": "info",
+        "link": "/member/trainer",
+        "is_read": False,
+        "created_at": now
+    })
+    
+    # Admin system log notification
+    log_notification(
+        title="Member Request Approved",
+        message=f"{member.get('full_name')} ({member_id}) was approved and assigned to trainer {trainer.get('name')}.",
+        notif_type="success",
+        link=f"/members/{member_id}"
+    )
+    
+    flash(f"Member {member.get('full_name')} approved and assigned to trainer {trainer.get('name')} successfully!", 'success')
+    return redirect(url_for('members.member_requests'))
+
+@members_bp.route('/requests/<member_id>/reject', methods=['POST'])
+@login_required
+def reject_member_request(member_id):
+    db = get_db()
+    member = db.members.find_one({"member_id": member_id})
+    if not member:
+        flash("Member request not found.", 'danger')
+        return redirect(url_for('members.member_requests'))
+        
+    rejection_reason = request.form.get('rejection_reason', '').strip() or "Registration information is incomplete."
+    now = get_now()
+    
+    # Store status = 'rejected' and rejection_reason without deleting request
+    db.members.update_one(
+        {"member_id": member_id},
+        {"$set": {
+            "status": "rejected",
+            "approval_status": "rejected",
+            "rejection_reason": rejection_reason,
+            "rejected_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    db.users.update_one(
+        {"$or": [{"member_id": member_id}, {"email": member.get("email")}]},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": rejection_reason,
+            "updated_at": now
+        }}
+    )
+    
+    # Member notification: "Your registration request was rejected." and rejection reason
+    db.notifications.insert_one({
+        "title": "Your registration request was rejected.",
+        "message": f"Reason: {rejection_reason}",
+        "member_id": member_id,
+        "type": "danger",
+        "is_read": False,
+        "created_at": now
+    })
+    
+    flash(f"Registration request for {member.get('full_name')} was rejected.", 'warning')
+    return redirect(url_for('members.member_requests'))
+
+@members_bp.route('/<member_id>/change-trainer', methods=['POST'])
+@login_required
+def change_trainer(member_id):
+    # Security: Changing trainers is restricted exclusively to Admin
+    if str(session.get('role', '')).lower() != 'admin':
+        flash("Access Denied: Only administrators can change trainer assignments.", 'danger')
+        return redirect(url_for('dashboard.index'))
+        
+    db = get_db()
+    member = db.members.find_one({"member_id": member_id})
+    if not member:
+        flash("Member not found.", 'danger')
+        return redirect(url_for('members.list_members'))
+        
+    new_trainer_id = request.form.get('trainer_id', '').strip()
+    now = get_now()
+    assignment_date = now.strftime("%d %b %Y")
+    
+    if new_trainer_id:
+        trainer = db.trainers.find_one({"trainer_id": new_trainer_id})
+        if not trainer:
+            flash("Selected trainer not found.", 'danger')
+            return redirect(request.referrer or url_for('members.view_member', member_id=member_id))
+            
+        trainer_name = trainer.get("name", "Trainer")
+        
+        # Update Member in database
+        db.members.update_one(
+            {"member_id": member_id},
+            {"$set": {
+                "trainer_id": new_trainer_id,
+                "trainer_name": trainer_name,
+                "updated_at": now
+            }}
+        )
+        
+        # Keep Users collection synchronized
+        db.users.update_one(
+            {"$or": [{"member_id": member_id}, {"email": member.get("email")}]},
+            {"$set": {
+                "trainer_id": new_trainer_id,
+                "trainer_name": trainer_name,
+                "updated_at": now
+            }}
+        )
+        
+        # 1. Notification to new Trainer
+        fitness_goal = member.get('fitness_goal') or 'General Fitness'
+        db.notifications.insert_one({
+            "title": "New member assigned to you.",
+            "message": f"Member Name: {member.get('full_name')}, Member ID: {member_id}, Goal: {fitness_goal}, Assigned: {assignment_date}",
+            "trainer_id": new_trainer_id,
+            "type": "info",
+            "link": f"/trainer/members/{member_id}",
+            "is_read": False,
+            "created_at": now
+        })
+        
+        # 2. Notification to Member
+        db.notifications.insert_one({
+            "title": "Your trainer has been assigned.",
+            "message": f"Your assigned personal coach has been updated to: {trainer_name}",
+            "member_id": member_id,
+            "type": "info",
+            "link": "/member/trainer",
+            "is_read": False,
+            "created_at": now
+        })
+        
+        # 3. Log administrative audit notification
+        log_notification(
+            title="Trainer Assignment Updated",
+            message=f"{member.get('full_name')} ({member_id}) was assigned to coach {trainer_name}.",
+            notif_type="info",
+            link=f"/members/{member_id}"
+        )
+        
+        flash(f"Trainer for {member.get('full_name')} updated to {trainer_name} successfully!", 'success')
+    else:
+        # Unassign trainer
+        db.members.update_one(
+            {"member_id": member_id},
+            {"$set": {
+                "trainer_id": None,
+                "trainer_name": None,
+                "updated_at": now
+            }}
+        )
+        db.users.update_one(
+            {"$or": [{"member_id": member_id}, {"email": member.get("email")}]},
+            {"$set": {
+                "trainer_id": None,
+                "trainer_name": None,
+                "updated_at": now
+            }}
+        )
+        
+        log_notification(
+            title="Trainer Unassigned",
+            message=f"Trainer unassigned from {member.get('full_name')} ({member_id}).",
+            notif_type="warning",
+            link=f"/members/{member_id}"
+        )
+        
+        flash(f"Trainer was unassigned from {member.get('full_name')}.", 'info')
+        
+    return redirect(request.referrer or url_for('members.view_member', member_id=member_id))

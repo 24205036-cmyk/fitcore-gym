@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'fitcore-secret-default-key-change-in-prod')
-    MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+    MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://24205036_db_user:Haamidh%40123@cluster0.qdjj9uz.mongodb.net/?appName=Cluster0')
     DATABASE_NAME = os.getenv('DATABASE_NAME', 'gym_management')
     DEFAULT_GYM_CAPACITY = int(os.getenv('GYM_CAPACITY', 100))
     TIMEZONE = os.getenv('TIMEZONE', 'Asia/Kolkata')

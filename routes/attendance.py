@@ -81,6 +81,7 @@ def list_attendance():
     filter_period = request.args.get('period', 'today')
     custom_date = request.args.get('date', '').strip()
     status_filter = request.args.get('status', '').strip()
+    role_filter = request.args.get('role', 'all').strip().lower()
     search_q = request.args.get('search', '').strip()
     
     today_dt = get_now().date()
@@ -107,18 +108,45 @@ def list_attendance():
     if status_filter:
         query['status'] = status_filter
         
-    if search_q:
-        query['$or'] = [
-            {'member_id': {'$regex': search_q, '$options': 'i'}},
-            {'member_name': {'$regex': search_q, '$options': 'i'}}
-        ]
-
     attendance_records = list(db.attendance.find(query).sort("check_in", -1))
     
+    # Normalize records for unified display
+    normalized_records = []
+    for r in attendance_records:
+        is_trn = (r.get('person_type') == 'trainer') or (bool(r.get('trainer_id')) and not bool(r.get('member_id')))
+        r['is_trainer'] = is_trn
+        r['person_role'] = "Trainer" if is_trn else "Member"
+        r['person_name'] = (r.get('trainer_name') if is_trn else r.get('member_name')) or r.get('name') or ('Trainer' if is_trn else 'Member')
+        r['person_id'] = r.get('trainer_id') if is_trn else (r.get('member_id') or r.get('trainer_id'))
+        r['subtext'] = r.get('specialization', 'Fitness Coach') if is_trn else (r.get('plan_name') or 'Standard Plan')
+        cin_dt = r.get('check_in_dt')
+        if cin_dt and hasattr(cin_dt, 'isoformat'):
+            r['check_in_iso'] = cin_dt.isoformat()
+        elif r.get('check_in'):
+            r['check_in_iso'] = str(r['check_in']).replace(' ', 'T')
+        else:
+            r['check_in_iso'] = ''
+
+        if role_filter == 'member' and is_trn:
+            continue
+        if role_filter == 'trainer' and not is_trn:
+            continue
+        if search_q:
+            q_low = search_q.lower()
+            if (q_low not in str(r.get('person_id', '')).lower() and
+                q_low not in str(r.get('person_name', '')).lower() and
+                q_low not in str(r.get('subtext', '')).lower()):
+                continue
+        normalized_records.append(r)
+    attendance_records = normalized_records
+
     # Calculate statistics for today specifically
     today_records = list(db.attendance.find({"check_in_date": today_dt.strftime("%Y-%m-%d")}))
     today_checkins = len(today_records)
-    currently_inside = db.attendance.count_documents({"status": "Inside"})
+    all_inside = list(db.attendance.find({"status": "Inside"}))
+    currently_inside = len(all_inside)
+    trainers_inside = sum(1 for r in all_inside if (r.get('person_type') == 'trainer' or (bool(r.get('trainer_id')) and not bool(r.get('member_id')))))
+    members_inside = max(0, currently_inside - trainers_inside)
     today_checkouts = sum(1 for r in today_records if r.get('status') == 'Checked Out')
     
     # Average visit duration today
@@ -134,6 +162,8 @@ def list_attendance():
         records=attendance_records,
         today_checkins=today_checkins,
         currently_inside=currently_inside,
+        members_inside=members_inside,
+        trainers_inside=trainers_inside,
         today_checkouts=today_checkouts,
         avg_duration_display=avg_duration_display,
         hourly_history=hourly_history,
@@ -141,6 +171,7 @@ def list_attendance():
         custom_date=custom_date,
         target_date_str=target_date_str,
         status_filter=status_filter,
+        role_filter=role_filter,
         search_q=search_q,
         capacity=capacity
     )
@@ -155,10 +186,10 @@ def checkin():
     if request.method == 'POST':
         identifier = request.form.get('identifier', '').strip()
         if not identifier:
-            flash("Please enter Member ID, Phone, or Name.", 'danger')
+            flash("Please enter Member ID, Trainer ID, Phone, or Name.", 'danger')
             return render_template('attendance/checkin.html')
             
-        # 1. Find Member
+        # 1. Check if matches Member
         member = db.members.find_one({
             '$or': [
                 {'member_id': {'$regex': f"^{identifier}$", '$options': 'i'}},
@@ -167,14 +198,71 @@ def checkin():
             ]
         })
         
+        # 2. Check if matches Trainer
+        trainer = None
         if not member:
-            flash(f"No member found matching '{identifier}'.", 'danger')
+            trainer = db.trainers.find_one({
+                '$or': [
+                    {'trainer_id': {'$regex': f"^{identifier}$", '$options': 'i'}},
+                    {'phone': identifier},
+                    {'name': {'$regex': identifier, '$options': 'i'}}
+                ]
+            })
+            
+        if not member and not trainer:
+            flash(f"No active member or trainer found matching '{identifier}'.", 'danger')
             return render_template('attendance/checkin.html', identifier=identifier)
             
+        now_dt = get_now()
+        time_display = now_dt.strftime("%I:%M %p")
+        date_str = now_dt.strftime("%Y-%m-%d")
+        datetime_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Handle Trainer Check-In
+        if trainer:
+            trainer_id = trainer['trainer_id']
+            trainer_name = trainer['name']
+            
+            already_inside = db.attendance.find_one({"trainer_id": trainer_id, "status": "Inside"})
+            if already_inside:
+                flash(f"Trainer {trainer_name} ({trainer_id}) is already checked in on floor since {already_inside.get('time_display', '')}.", 'warning')
+                return redirect(url_for('attendance.list_attendance'))
+                
+            att_record = {
+                "trainer_id": trainer_id,
+                "trainer_name": trainer_name,
+                "name": trainer_name,
+                "person_type": "trainer",
+                "role": "Trainer",
+                "specialization": trainer.get("specialization", "Fitness Coach"),
+                "check_in": datetime_str,
+                "check_in_dt": now_dt,
+                "check_in_date": date_str,
+                "check_in_time": time_display,
+                "time_display": time_display,
+                "check_out": None,
+                "check_out_dt": None,
+                "duration_minutes": 0,
+                "duration_display": "In Progress",
+                "status": "Inside",
+                "created_at": now_dt
+            }
+            db.attendance.insert_one(att_record)
+            
+            log_notification(
+                title="Trainer Checked In",
+                message=f"Coach {trainer_name} ({trainer_id}) checked in on floor.",
+                notif_type="info",
+                link="/attendance"
+            )
+            flash(f"Check-in successful! Coach {trainer_name} ({trainer_id}) is now marked on floor.", 'success')
+            return redirect(url_for('attendance.list_attendance'))
+            
+        # Handle Member Check-In
         member_id = member['member_id']
         member_name = member['full_name']
         
-        # 2. Check Membership Status
+        # Check Membership Status
         if member.get('status') == 'Expired':
             flash(f"Cannot check in: Membership for {member_name} ({member_id}) has EXPIRED. Please renew first.", 'danger')
             return render_template('attendance/checkin.html', member=member, needs_renewal=True)
@@ -183,38 +271,40 @@ def checkin():
             flash(f"Cannot check in: Member {member_name} ({member_id}) is currently {member.get('status')}.", 'danger')
             return render_template('attendance/checkin.html', member=member)
             
-        # 3. Check Duplicate Active Check-In
+        # Check Duplicate Active Check-In
         already_inside = db.attendance.find_one({"member_id": member_id, "status": "Inside"})
         if already_inside:
             flash(f"Member {member_name} ({member_id}) is already checked in and inside the gym since {already_inside.get('time_display', '')}.", 'warning')
             return redirect(url_for('attendance.list_attendance'))
             
-        # 4. Check Gym Capacity Limit
+        # Check Gym Capacity Limit
         current_inside = db.attendance.count_documents({"status": "Inside"})
         if current_inside >= capacity:
             flash(f"Gym is currently at full capacity ({capacity}/{capacity}). Check-in denied until someone checks out.", 'danger')
             return render_template('attendance/checkin.html', member=member, full_capacity=True)
             
-        # 5. Record Attendance
-        now_dt = get_now()
         att_record = {
             "member_id": member_id,
             "member_name": member_name,
+            "name": member_name,
+            "person_type": "member",
+            "role": "Member",
             "plan_name": member.get("plan_name", "Standard"),
-            "check_in": now_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "check_in": datetime_str,
             "check_in_dt": now_dt,
-            "check_in_date": now_dt.strftime("%Y-%m-%d"),
-            "time_display": now_dt.strftime("%I:%M %p"),
+            "check_in_date": date_str,
+            "check_in_time": time_display,
+            "time_display": time_display,
             "check_out": None,
             "check_out_dt": None,
             "duration_minutes": 0,
-            "duration_display": "-",
+            "duration_display": "In Progress",
             "status": "Inside",
+            "trainer_id": member.get("trainer_id"),
             "created_at": now_dt
         }
         db.attendance.insert_one(att_record)
         
-        # 6. Notification
         log_notification(
             title="Member Checked In",
             message=f"{member_name} ({member_id}) checked in.",
@@ -222,17 +312,6 @@ def checkin():
             link="/attendance"
         )
         
-        # Check capacity threshold warning
-        new_inside = current_inside + 1
-        pct = (new_inside / capacity) * 100
-        if pct >= 90:
-            log_notification(
-                title="High Gym Occupancy",
-                message=f"Gym capacity has reached {int(pct)}% ({new_inside}/{capacity} members inside).",
-                notif_type="warning",
-                link="/attendance"
-            )
-            
         flash(f"Check-in successful! {member_name} ({member_id}) is now inside.", 'success')
         return redirect(url_for('attendance.list_attendance'))
         
@@ -283,14 +362,18 @@ def checkout(record_id):
         }}
     )
     
+    is_trn = (att.get('person_type') == 'trainer') or (bool(att.get('trainer_id')) and not bool(att.get('member_id')))
+    person_name = (att.get('trainer_name') if is_trn else att.get('member_name')) or att.get('name') or ('Trainer' if is_trn else 'Member')
+    role_label = "Trainer" if is_trn else "Member"
+    
     log_notification(
-        title="Member Checked Out",
-        message=f"{att.get('member_name')} checked out after {duration_display}.",
+        title=f"{role_label} Checked Out",
+        message=f"{person_name} checked out after {duration_display}.",
         notif_type="info",
         link="/attendance"
     )
     
-    flash(f"Check-out successful for {att.get('member_name')}. Duration: {duration_display}.", 'success')
+    flash(f"Check-out successful for {person_name}. Duration: {duration_display}.", 'success')
     return redirect(request.referrer or url_for('attendance.list_attendance'))
 
 # API Endpoints
@@ -298,22 +381,87 @@ def checkout(record_id):
 @login_required
 def api_check_in():
     data = request.get_json(silent=True) or request.form
-    member_id = data.get('member_id', '').strip()
+    identifier = (data.get('member_id') or data.get('identifier') or data.get('trainer_id') or '').strip()
     
-    if not member_id:
-        return jsonify({"success": False, "message": "Member ID is required."}), 400
+    if not identifier:
+        return jsonify({"success": False, "message": "Member ID or Trainer ID is required."}), 400
         
     db = get_db()
+    # 1. Check member
     member = db.members.find_one({
         '$or': [
-            {'member_id': {'$regex': f"^{member_id}$", '$options': 'i'}},
-            {'phone': member_id},
-            {'full_name': {'$regex': member_id, '$options': 'i'}}
+            {'member_id': {'$regex': f"^{identifier}$", '$options': 'i'}},
+            {'phone': identifier},
+            {'full_name': {'$regex': identifier, '$options': 'i'}}
         ]
     })
+    
+    # 2. Check trainer
+    trainer = None
     if not member:
-        return jsonify({"success": False, "message": f"Member '{member_id}' not found."}), 404
+        trainer = db.trainers.find_one({
+            '$or': [
+                {'trainer_id': {'$regex': f"^{identifier}$", '$options': 'i'}},
+                {'phone': identifier},
+                {'name': {'$regex': identifier, '$options': 'i'}}
+            ]
+        })
         
+    if not member and not trainer:
+        return jsonify({"success": False, "message": f"'{identifier}' was not found as a member or trainer."}), 404
+        
+    now_dt = get_now()
+    time_display = now_dt.strftime("%I:%M %p")
+    date_str = now_dt.strftime("%Y-%m-%d")
+    datetime_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Trainer API checkin
+    if trainer:
+        trainer_id = trainer['trainer_id']
+        trainer_name = trainer['name']
+        existing = db.attendance.find_one({"trainer_id": trainer_id, "status": "Inside"})
+        if existing:
+            return jsonify({"success": False, "message": f"Trainer {trainer_name} ({trainer_id}) is already inside."}), 400
+            
+        att_doc = {
+            "trainer_id": trainer_id,
+            "trainer_name": trainer_name,
+            "name": trainer_name,
+            "person_type": "trainer",
+            "role": "Trainer",
+            "specialization": trainer.get("specialization", "Fitness Coach"),
+            "check_in": datetime_str,
+            "check_in_dt": now_dt,
+            "check_in_date": date_str,
+            "check_in_time": time_display,
+            "time_display": time_display,
+            "check_out": None,
+            "check_out_dt": None,
+            "duration_minutes": 0,
+            "duration_display": "In Progress",
+            "status": "Inside",
+            "created_at": now_dt
+        }
+        res = db.attendance.insert_one(att_doc)
+        log_notification(
+            title="Trainer Checked In",
+            message=f"Coach {trainer_name} ({trainer_id}) checked in on floor.",
+            notif_type="info",
+            link="/attendance"
+        )
+        return jsonify({
+            "success": True,
+            "message": f"Check-in successful for Coach {trainer_name}!",
+            "data": {
+                "record_id": str(res.inserted_id),
+                "id": trainer_id,
+                "name": trainer_name,
+                "role": "Trainer",
+                "check_in": time_display
+            }
+        })
+
+    # Member API checkin
     member_id = member['member_id']
     member_name = member['full_name']
         
@@ -323,51 +471,54 @@ def api_check_in():
     if member.get('status') in ['Suspended', 'Inactive']:
         return jsonify({"success": False, "message": f"Member status is {member.get('status')}."}), 400
         
-    # Check duplicate
     existing = db.attendance.find_one({"member_id": member_id, "status": "Inside"})
     if existing:
         return jsonify({"success": False, "message": f"{member_name} ({member_id}) is already inside the gym."}), 400
         
-    # Capacity check
     settings = get_gym_settings()
     capacity = int(settings.get('gym_capacity', 100))
     current_inside = db.attendance.count_documents({"status": "Inside"})
     if current_inside >= capacity:
         return jsonify({"success": False, "message": f"Gym is currently at full capacity ({capacity}/{capacity})."}), 400
         
-    now_dt = get_now()
     att_doc = {
         "member_id": member_id,
-        "member_name": member.get("full_name"),
+        "member_name": member_name,
+        "name": member_name,
+        "person_type": "member",
+        "role": "Member",
         "plan_name": member.get("plan_name", "Standard"),
-        "check_in": now_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "check_in": datetime_str,
         "check_in_dt": now_dt,
-        "check_in_date": now_dt.strftime("%Y-%m-%d"),
-        "time_display": now_dt.strftime("%I:%M %p"),
+        "check_in_date": date_str,
+        "check_in_time": time_display,
+        "time_display": time_display,
         "check_out": None,
         "check_out_dt": None,
         "duration_minutes": 0,
-        "duration_display": "-",
+        "duration_display": "In Progress",
         "status": "Inside",
+        "trainer_id": member.get("trainer_id"),
         "created_at": now_dt
     }
     res = db.attendance.insert_one(att_doc)
     
     log_notification(
         title="Member Checked In",
-        message=f"{member.get('full_name')} ({member_id}) checked in.",
+        message=f"{member_name} ({member_id}) checked in.",
         notif_type="info",
         link="/attendance"
     )
     
     return jsonify({
         "success": True,
-        "message": f"Check-in successful for {member.get('full_name')}!",
+        "message": f"Check-in successful for {member_name}!",
         "data": {
             "record_id": str(res.inserted_id),
-            "member_id": member_id,
-            "member_name": member.get("full_name"),
-            "check_in": att_doc["time_display"]
+            "id": member_id,
+            "name": member_name,
+            "role": "Member",
+            "check_in": time_display
         }
     })
 
@@ -375,43 +526,71 @@ def api_check_in():
 @login_required
 def api_check_out():
     data = request.get_json(silent=True) or request.form
-    member_id = data.get('member_id', '').strip()
+    identifier = (data.get('member_id') or data.get('identifier') or data.get('trainer_id') or '').strip()
     
-    if not member_id:
-        return jsonify({"success": False, "message": "Member ID is required."}), 400
+    if not identifier:
+        return jsonify({"success": False, "message": "Identifier is required."}), 400
         
     db = get_db()
-    att = db.attendance.find_one({"member_id": member_id, "status": "Inside"})
+    # Check for member check-in first
+    att = db.attendance.find_one({
+        "member_id": {'$regex': f"^{identifier}$", '$options': 'i'},
+        "status": "Inside"
+    })
+    # Otherwise check for trainer check-in
     if not att:
-        return jsonify({"success": False, "message": f"No active check-in found for {member_id}."}), 404
+        att = db.attendance.find_one({
+            "trainer_id": {'$regex': f"^{identifier}$", '$options': 'i'},
+            "person_type": "trainer",
+            "status": "Inside"
+        })
+    if not att:
+        att = db.attendance.find_one({
+            "trainer_id": {'$regex': f"^{identifier}$", '$options': 'i'},
+            "member_id": {"$in": [None, ""]},
+            "status": "Inside"
+        })
+    if not att:
+        return jsonify({"success": False, "message": f"No active check-in found for '{identifier}'."}), 404
         
     now_dt = get_now()
     cin_dt = att.get('check_in_dt') or now_dt
-    if cin_dt.tzinfo is None:
-        cin_dt = cin_dt.replace(tzinfo=get_tz())
-        
-    duration_delta = now_dt - cin_dt
+    if hasattr(cin_dt, 'tzinfo') and cin_dt.tzinfo is not None:
+        cin_dt = cin_dt.replace(tzinfo=None)
+    now_naive = now_dt.replace(tzinfo=None) if hasattr(now_dt, 'tzinfo') and now_dt.tzinfo else now_dt
+    if not isinstance(cin_dt, datetime):
+        try:
+            cin_dt = datetime.strptime(str(att.get('check_in')), "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            cin_dt = now_naive
+            
+    duration_delta = now_naive - cin_dt
     duration_minutes = max(1, int(duration_delta.total_seconds() // 60))
     hours = duration_minutes // 60
     mins = duration_minutes % 60
     duration_display = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
+    time_display = now_dt.strftime("%I:%M %p")
+    datetime_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
     
     db.attendance.update_one(
         {"_id": att["_id"]},
         {"$set": {
-            "check_out": now_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "check_out": datetime_str,
             "check_out_dt": now_dt,
+            "check_out_time": time_display,
             "duration_minutes": duration_minutes,
             "duration_display": duration_display,
-            "status": "Checked Out"
+            "status": "Checked Out",
+            "updated_at": now_dt
         }}
     )
     
+    person_name = att.get('trainer_name') or att.get('member_name') or att.get('name')
     return jsonify({
         "success": True,
-        "message": f"Check-out successful for {att.get('member_name')}.",
+        "message": f"Check-out successful for {person_name}.",
         "data": {
-            "member_id": member_id,
+            "identifier": identifier,
             "duration": duration_display
         }
     })

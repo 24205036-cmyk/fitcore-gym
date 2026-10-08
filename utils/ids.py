@@ -39,3 +39,13 @@ def get_next_plan_id() -> str:
 
 def get_next_payment_id() -> str:
     return generate_next_id("PAY", "payments", "payment_id", padding=3)
+
+def get_next_user_id() -> str:
+    return generate_next_id("USR", "users", "user_id", padding=3)
+
+def get_next_workout_id() -> str:
+    return generate_next_id("WKT", "workout_plans", "workout_id", padding=3)
+
+def get_next_schedule_id() -> str:
+    return generate_next_id("SCH", "schedules", "schedule_id", padding=3)
+

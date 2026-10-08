@@ -37,6 +37,24 @@ def validate_member_form(data: dict) -> tuple[bool, str]:
             
     return True, ""
 
+def validate_registration_form(data: dict) -> tuple[bool, str]:
+    if not data.get('full_name', '').strip():
+        return False, "Full Name is required."
+    email = data.get('email', '').strip()
+    if not email or not is_valid_email(email):
+        return False, "A valid email address is required."
+    phone = data.get('phone', '').strip()
+    if not phone or not is_valid_phone(phone):
+        return False, "A valid phone number is required (at least 8 digits)."
+    password = data.get('password', '')
+    confirm_password = data.get('confirm_password', '')
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters long."
+    if password != confirm_password:
+        return False, "Passwords do not match. Please re-enter."
+    return True, ""
+
+
 def validate_trainer_form(data: dict) -> tuple[bool, str]:
     if not data.get('name', '').strip():
         return False, "Trainer Name is required."

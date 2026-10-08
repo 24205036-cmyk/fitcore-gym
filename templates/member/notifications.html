@@ -1,0 +1,52 @@
+{% extends 'member/base.html' %}
+
+{% block title %}Notifications - FITCORE Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">Notifications & Announcements</h3>
+      <p class="text-secondary small mb-0">Stay informed on gym alerts, renewal reminders, and coaching updates.</p>
+    </div>
+    {% if notifications %}
+      <form method="POST" action="{{ url_for('member.mark_notifications_read') }}">
+        <button type="submit" class="btn btn-outline-warning btn-sm">
+          <i class="bi bi-check2-all me-1"></i> Mark All as Read
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="card card-custom p-4">
+    {% if notifications %}
+      <div class="d-flex flex-column gap-3">
+        {% for n in notifications %}
+          <div class="p-3 rounded d-flex align-items-start gap-3" style="background: rgba(255, 255, 255, 0.02); border-left: 4px solid {% if n.is_read %}#6c757d{% else %}var(--fc-primary-yellow){% endif %};">
+            <div class="kpi-icon-box mt-1" style="width: 38px; height: 38px; border-radius: 8px; background: rgba(255, 199, 0, 0.15); color: var(--fc-primary-yellow); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i class="bi bi-bell-fill"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="fw-bold text-white mb-0">{{ n.title }}</h6>
+                <div class="text-muted small" style="font-size: 0.75rem;">
+                  {{ n.created_at.strftime('%d %b %Y, %I:%M %p') if n.created_at else 'Recent' }}
+                </div>
+              </div>
+              <p class="text-secondary small mb-0">{{ n.message }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-bell-slash fs-1 mb-2 d-block text-muted"></i>
+        <h6 class="text-white">No notifications</h6>
+        <p class="small text-muted mb-0">You're completely caught up with all gym updates.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

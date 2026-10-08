@@ -66,23 +66,27 @@ def format_currency(val) -> str:
 
 def get_gym_settings() -> dict:
     """Retrieves current settings from MongoDB, falling back to defaults."""
-    db = get_db()
-    settings = db.settings.find_one({"type": "general"})
-    if not settings:
-        settings = {
-            "type": "general",
-            "gym_name": "FITCORE",
-            "gym_address": "42 Fitness Boulevard, Tech City, Bangalore",
-            "gym_phone": "+91 98765 43210",
-            "gym_email": "admin@fitcore.local",
-            "gym_capacity": Config.DEFAULT_GYM_CAPACITY,
-            "opening_time": "05:00 AM",
-            "closing_time": "10:00 PM",
-            "currency": "INR",
-            "currency_symbol": "₹",
-            "timezone": Config.TIMEZONE
-        }
-    return settings
+    default_settings = {
+        "type": "general",
+        "gym_name": "FITCORE",
+        "gym_address": "42 Fitness Boulevard, Tech City, Bangalore",
+        "gym_phone": "+91 98765 43210",
+        "gym_email": "admin@fitcore.local",
+        "gym_capacity": Config.DEFAULT_GYM_CAPACITY,
+        "opening_time": "05:00 AM",
+        "closing_time": "10:00 PM",
+        "currency": "INR",
+        "currency_symbol": "₹",
+        "timezone": Config.TIMEZONE
+    }
+    try:
+        db = get_db()
+        settings = db.settings.find_one({"type": "general"})
+        if settings:
+            return settings
+    except Exception:
+        pass
+    return default_settings
 
 def is_gym_open(settings: dict = None) -> bool:
     """Determines whether the gym is currently open based on settings."""

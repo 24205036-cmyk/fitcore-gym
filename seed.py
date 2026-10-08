@@ -4,9 +4,9 @@ from database import init_db, get_db
 from utils.auth import hash_password
 from utils.helpers import get_now
 
-def seed_database():
+def seed_database(target_db=None):
     print("[*] Initializing FITCORE database seed...")
-    db = init_db()
+    db = target_db if target_db is not None else init_db()
     
     # 1. Seed Admin
     existing_admin = db.admins.find_one({"username": "admin"})
@@ -426,11 +426,126 @@ def seed_database():
     else:
         print("  [-] Notifications already exist.")
 
+    # 9. Seed Unified Users for Role-Based Access Control
+    demo_users = [
+        {
+            "user_id": "USR001",
+            "username": "admin",
+            "name": "Admin Manager",
+            "email": "admin@fitcore.com",
+            "phone": "+91 98765 43210",
+            "password": hash_password("admin123"),
+            "role": "admin",
+            "status": "active",
+            "created_at": now
+        },
+        {
+            "user_id": "USR002",
+            "trainer_id": "TRN001",
+            "name": "Vikram Singh",
+            "email": "trainer@fitcore.com",
+            "phone": "+91 98765 11001",
+            "password": hash_password("trainer123"),
+            "role": "trainer",
+            "status": "active",
+            "created_at": now
+        },
+        {
+            "user_id": "USR003",
+            "member_id": "GYM001",
+            "name": "Arun Kumar",
+            "email": "member@fitcore.com",
+            "phone": "+91 98111 22331",
+            "password": hash_password("member123"),
+            "role": "member",
+            "status": "active",
+            "created_at": now
+        }
+    ]
+    for u in demo_users:
+        db.users.update_one(
+            {"email": u["email"]},
+            {"$set": u},
+            upsert=True
+        )
+    print("  [+] Seeded RBAC Demo Users (admin, trainer, member)")
+
+    # 10. Seed Sample Workout Plans
+    if db.workout_plans.count_documents({}) == 0:
+        db.workout_plans.insert_many([
+            {
+                "workout_id": "WKT001",
+                "trainer_id": "TRN001",
+                "trainer_name": "Vikram Singh",
+                "member_id": "GYM001",
+                "member_name": "Arun Kumar",
+                "workout_name": "Upper Body Hypertrophy",
+                "goal": "Muscle Growth & Strength",
+                "exercise": "Flat Barbell Bench Press, Incline DB Press, Cable Chest Flyes, Triceps Pushdowns",
+                "sets": 4,
+                "repetitions": "10-12",
+                "duration": "50 mins",
+                "notes": "Keep 90s rest interval between working sets. Progressive overload on compound lifts.",
+                "created_at": now - timedelta(days=2)
+            },
+            {
+                "workout_id": "WKT002",
+                "trainer_id": "TRN001",
+                "trainer_name": "Vikram Singh",
+                "member_id": "GYM001",
+                "member_name": "Arun Kumar",
+                "workout_name": "Legs & Core Conditioning",
+                "goal": "Lower Body Power",
+                "exercise": "Barbell Back Squats, Romanian Deadlifts, Walking Lunges, Hanging Leg Raises",
+                "sets": 3,
+                "repetitions": "12-15",
+                "duration": "45 mins",
+                "notes": "Full depth on squats, focus on hamstrings stretch during RDLs.",
+                "created_at": now - timedelta(days=1)
+            }
+        ])
+        print("  [+] Seeded sample workout plans for member GYM001")
+
+    # 11. Seed Sample Training Schedules
+    if db.schedules.count_documents({}) == 0:
+        today_date_str = now.strftime("%Y-%m-%d")
+        tomorrow_date_str = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        db.schedules.insert_many([
+            {
+                "schedule_id": "SCH001",
+                "trainer_id": "TRN001",
+                "trainer_name": "Vikram Singh",
+                "member_id": "GYM001",
+                "member_name": "Arun Kumar",
+                "date": today_date_str,
+                "time": "07:30 AM",
+                "session_type": "Personal Training",
+                "status": "Scheduled",
+                "notes": "Form check on Bench Press & strength progression review.",
+                "created_at": now
+            },
+            {
+                "schedule_id": "SCH002",
+                "trainer_id": "TRN001",
+                "trainer_name": "Vikram Singh",
+                "member_id": "GYM001",
+                "member_name": "Arun Kumar",
+                "date": tomorrow_date_str,
+                "time": "08:00 AM",
+                "session_type": "Form Assessment",
+                "status": "Scheduled",
+                "notes": "Squats technique review & core conditioning.",
+                "created_at": now
+            }
+        ])
+        print("  [+] Seeded sample trainer-member schedule sessions")
+
     print("\n[OK] FITCORE Database seeding completed successfully!")
     print("--------------------------------------------------")
-    print("Default Admin Login Credentials:")
-    print("Username : admin")
-    print("Password : admin123")
+    print("Role-Based Demo Credentials:")
+    print("ADMIN   : admin / admin123  (or admin@fitcore.com)")
+    print("TRAINER : trainer@fitcore.com / trainer123")
+    print("MEMBER  : member@fitcore.com / member123")
     print("--------------------------------------------------")
 
 if __name__ == '__main__':

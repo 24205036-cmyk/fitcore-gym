@@ -8,6 +8,8 @@ from .payments import payments_bp
 from .reports import reports_bp
 from .notifications import notifications_bp
 from .settings import settings_bp
+from .member import member_bp
+from .trainer import trainer_bp
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp)
@@ -20,3 +22,5 @@ def register_blueprints(app):
     app.register_blueprint(reports_bp)
     app.register_blueprint(notifications_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(member_bp)
+    app.register_blueprint(trainer_bp)

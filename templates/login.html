@@ -3,129 +3,323 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - FITCORE Gym Management</title>
+  <title>FITCORE - Administrator Login</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  
   <style>
+    :root {
+      --fc-gold: #FFC700;
+      --fc-gold-hover: #FFD426;
+      --fc-gold-glow: rgba(255, 199, 0, 0.4);
+      --fc-card-border: rgba(255, 199, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 24px 16px;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-    }
-    .login-card {
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-      width: 100%;
-      max-width: 440px;
-      overflow: hidden;
-    }
-    .login-header {
-      background: #0f172a;
+      background-color: #06080b;
+      background-image: 
+        linear-gradient(rgba(6, 8, 11, 0.72), rgba(6, 8, 11, 0.84)),
+        url('/static/images/gym_interior_bg.jpg?v=20261008');
+      background-position: center center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
       color: #ffffff;
-      padding: 32px 28px;
-      text-align: center;
-      border-bottom: 3px solid var(--fc-primary);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
+
+    /* Prevent browser autofill from turning inputs white */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 40px #12151b inset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    .login-center-wrapper {
+      width: 100%;
+      max-width: 410px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Brand Header */
+    .brand-header-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
     .brand-logo-badge {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-      border-radius: 14px;
+      width: 60px;
+      height: 60px;
+      background: var(--fc-gold);
+      color: #000000;
+      border-radius: 15px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 2rem;
-      margin-bottom: 12px;
-      box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+      box-shadow: 0 0 28px var(--fc-gold-glow);
+      margin-bottom: 10px;
     }
-    .dev-credentials-box {
-      background-color: #f8fafc;
-      border: 1px dashed #cbd5e1;
+
+    .brand-title {
+      font-size: 1.95rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      margin: 0;
+      color: #ffffff;
+    }
+
+    .brand-title span {
+      color: var(--fc-gold);
+    }
+
+    .brand-subtitle {
+      font-size: 0.78rem;
+      letter-spacing: 0.5px;
+      color: #94A3B8;
+      font-weight: 600;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* Glassmorphic Card */
+    .glass-card {
+      width: 100%;
+      background: rgba(12, 16, 24, 0.76);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      border: 1px solid rgba(255, 199, 0, 0.35);
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 25px rgba(255, 199, 0, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* Top Alert Banner */
+    .alert-banner-gold {
+      background: rgba(255, 199, 0, 0.12);
+      border: 1px solid rgba(255, 199, 0, 0.35);
+      color: #FFDD33;
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 9px 12px;
       font-size: 0.82rem;
-      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
     }
+
+    .alert-banner-danger {
+      background: rgba(255, 77, 77, 0.15);
+      border: 1px solid rgba(255, 77, 77, 0.45);
+      color: #FF6B6B;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .form-label-custom {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: #94A3B8;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .input-dark-group {
+      background: #12151b !important;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .input-dark-group:focus-within {
+      border-color: var(--fc-gold);
+      box-shadow: 0 0 0 3px rgba(255, 199, 0, 0.22);
+      background: #151922 !important;
+    }
+
+    .input-dark-group .icon-box {
+      padding: 10px 12px;
+      color: #6b7280;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-dark-group input {
+      background: transparent !important;
+      border: none;
+      color: #ffffff !important;
+      padding: 10px 12px 10px 0;
+      font-size: 0.92rem;
+      width: 100%;
+      outline: none;
+    }
+
+    .input-dark-group input::placeholder {
+      color: #555d6b;
+    }
+
+    .form-check-input {
+      background-color: #12151b;
+      border-color: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+    }
+
+    .form-check-input:checked {
+      background-color: var(--fc-gold);
+      border-color: var(--fc-gold);
+    }
+
+    .admin-access-badge {
+      background: #161a22;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #8e98a8;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 5px;
+      padding: 3px 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-signin-gold {
+      background: var(--fc-gold);
+      color: #000000;
+      font-weight: 800;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 9px;
+      padding: 12px;
+      width: 100%;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 18px rgba(255, 199, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .btn-signin-gold:hover {
+      background: var(--fc-gold-hover);
+      box-shadow: 0 6px 22px rgba(255, 199, 0, 0.4);
+      transform: translateY(-1px);
+    }
+
+
   </style>
 </head>
 <body>
 
-<div class="login-card">
-  <div class="login-header">
+<div class="login-center-wrapper">
+  <!-- Brand Logo & Header -->
+  <div class="brand-header-section">
     <div class="brand-logo-badge">
       <i class="bi bi-lightning-charge-fill"></i>
     </div>
-    <h2 class="fw-bold mb-1 letter-spacing-tight">FITCORE</h2>
-    <p class="text-secondary small mb-0 text-uppercase tracking-wider">Smart Gym Management & Real-Time Occupancy</p>
+    <h1 class="brand-title">FIT<span>CORE</span></h1>
+    <div class="brand-subtitle">
+      SMART GYM MANAGEMENT &<br>REAL-TIME OCCUPANCY
+    </div>
   </div>
 
-  <div class="p-4 p-sm-4 pt-4">
-    <!-- Flash Messages -->
+  <!-- Glassmorphic Login Card -->
+  <div class="glass-card">
+    <!-- Flash Banner / Alert -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show d-flex align-items-center mb-3" role="alert">
-            <i class="bi bi-exclamation-circle-fill me-2"></i>
-            <div class="small">{{ message }}</div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+          <div class="{% if category in ['danger', 'error'] %}alert-banner-danger{% else %}alert-banner-gold{% endif %}">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi {% if category in ['danger', 'error'] %}bi-exclamation-octagon-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+              <span>{{ message }}</span>
+            </div>
+            <span role="button" onclick="this.parentElement.remove()" style="cursor: pointer; font-size: 1.1rem; opacity: 0.7;">&times;</span>
           </div>
         {% endfor %}
+      {% else %}
+        <div class="alert-banner-gold">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>Please log in to access this page.</span>
+          </div>
+          <span role="button" onclick="this.parentElement.remove()" style="cursor: pointer; font-size: 1.1rem; opacity: 0.7;">&times;</span>
+        </div>
       {% endif %}
     {% endwith %}
 
     <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
       <div class="mb-3">
-        <label for="username" class="form-label">Administrator Username</label>
-        <div class="input-group">
-          <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
-          <input type="text" class="form-control border-start-0" id="username" name="username" value="{{ username or '' }}" placeholder="Enter username" required autofocus>
+        <label for="username" class="form-label-custom">EMAIL OR USERNAME</label>
+        <div class="input-dark-group">
+          <div class="icon-box"><i class="bi bi-person-fill"></i></div>
+          <input type="text" id="username" name="username" value="{{ username or '' }}" placeholder="Username or email address" required autofocus autocomplete="off">
         </div>
       </div>
 
       <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <div class="input-group">
-          <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock text-muted"></i></span>
-          <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="Enter password" required>
+        <div class="d-flex justify-content-between align-items-center">
+          <label for="password" class="form-label-custom mb-0">PASSWORD</label>
+          <a href="javascript:void(0)" onclick="alert('For password resets, please contact the gym administrator at admin@fitcore.local or visit the front desk.');" class="small text-decoration-none" style="font-size: 0.72rem; color: var(--fc-gold);">Forgot password?</a>
+        </div>
+        <div class="input-dark-group mt-1">
+          <div class="icon-box"><i class="bi bi-lock-fill"></i></div>
+          <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="off">
         </div>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
         <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1">
-          <label class="form-check-label text-muted small" for="remember">Remember me</label>
+          <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1" checked>
+          <label class="form-check-label text-secondary small" for="remember">Remember me</label>
         </div>
-        <span class="badge bg-light text-secondary border">Admin Access</span>
+        <span class="admin-access-badge">Unified Login</span>
       </div>
 
-      <button type="submit" class="btn btn-primary-fc w-100 py-2 fs-6 fw-bold shadow-sm">
-        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to FitCore
+      <button type="submit" class="btn-signin-gold">
+        <i class="bi bi-box-arrow-in-right fs-5"></i>
+        <span>Sign In to FitCore</span>
       </button>
+
+      <div class="text-center mt-3 pt-2 border-top border-secondary border-opacity-25">
+        <span class="text-secondary small">New member?</span>
+        <a href="{{ url_for('auth.register') }}" class="small fw-semibold ms-1" style="color: var(--fc-gold);">Register an account &rarr;</a>
+      </div>
     </form>
 
-    <!-- Development Credentials Reference Box -->
-    <div class="dev-credentials-box mt-4">
-      <div class="fw-semibold text-dark mb-1 d-flex align-items-center gap-1">
-        <i class="bi bi-info-circle text-primary"></i> Default Development Credentials:
-      </div>
-      <div class="d-flex justify-content-between">
-        <span>Username: <strong class="text-dark">admin</strong></span>
-        <span>Password: <strong class="text-dark">admin123</strong></span>
-      </div>
-      <div class="text-muted small mt-1" style="font-size: 0.75rem;">
-        * For production security, change this password in Admin Settings.
-      </div>
-    </div>
+
   </div>
 </div>
 

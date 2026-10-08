@@ -20,9 +20,138 @@
   </div>
 
   <div class="d-flex gap-2">
-    <a href="{{ url_for('trainers.edit_trainer', trainer_id=trainer.trainer_id) }}" class="btn btn-secondary-fc btn-sm">
+    <button type="button" class="btn btn-gold btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#assignMemberModal">
+      <i class="bi bi-person-plus-fill me-1"></i> Add Member
+    </button>
+    <a href="{{ url_for('trainers.edit_trainer', trainer_id=trainer.trainer_id) }}" class="btn btn-dark-outline btn-sm">
       <i class="bi bi-pencil me-1"></i> Edit Profile
     </a>
+    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTrainerModal">
+      <i class="bi bi-trash3 me-1"></i> Delete Trainer
+    </button>
+  </div>
+</div>
+
+<!-- Delete Trainer Options Modal -->
+<div class="modal fade text-start" id="deleteTrainerModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+      <div class="modal-header border-secondary border-opacity-25">
+        <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="deleteModalLabel">
+          <i class="bi bi-exclamation-triangle-fill"></i> Delete Trainer: {{ trainer.name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="mb-3 text-secondary">
+          Choose an action for trainer <strong class="text-white">{{ trainer.name }}</strong> (ID: <span class="text-warning">{{ trainer.trainer_id }}</span>):
+        </p>
+
+        <!-- Option 1: Complete Delete -->
+        <div class="p-3 rounded mb-3" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+          <strong class="text-danger d-flex align-items-center gap-2 mb-1">
+            <i class="bi bi-trash3-fill"></i> Option 1: Delete Trainer Completely
+          </strong>
+          <div class="small text-secondary">
+            Permanently wipes the trainer profile, login credentials, assigned schedules, and routines. Unlinks assigned members so they can be reassigned to other coaches. <span class="text-white fw-bold">This cannot be undone.</span>
+          </div>
+        </div>
+
+        <!-- Option 2: Deactivate -->
+        <div class="p-3 rounded" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+          <strong class="text-warning d-flex align-items-center gap-2 mb-1">
+            <i class="bi bi-pause-circle-fill"></i> Option 2: Deactivate Account Only
+          </strong>
+          <div class="small text-secondary">
+            Blocks login and marks the trainer as Inactive while keeping coaching records and client history.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-secondary border-opacity-25 d-flex justify-content-between">
+        <form method="POST" action="{{ url_for('trainers.delete_trainer', trainer_id=trainer.trainer_id) }}">
+          <input type="hidden" name="mode" value="deactivate">
+          <button type="submit" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-pause-circle me-1"></i> Deactivate Only
+          </button>
+        </form>
+
+        <form method="POST" action="{{ url_for('trainers.delete_trainer', trainer_id=trainer.trainer_id) }}">
+          <input type="hidden" name="mode" value="permanent">
+          <button type="submit" class="btn btn-danger btn-sm fw-bold">
+            <i class="bi bi-trash3-fill me-1"></i> Delete Completely
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Member to Trainer Modal (Admin) -->
+<div class="modal fade text-start" id="assignMemberModal" tabindex="-1" aria-labelledby="assignMemberModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+      <div class="modal-header border-secondary border-opacity-25">
+        <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="assignMemberModalLabel">
+          <i class="bi bi-person-plus-fill text-warning"></i> Add Member to Trainer
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('trainers.assign_member', trainer_id=trainer.trainer_id) }}">
+        <div class="modal-body p-4">
+          <!-- Coach Info Summary Box -->
+          <div class="p-3 rounded mb-3" style="background: rgba(255, 208, 0, 0.08); border: 1px solid rgba(255, 208, 0, 0.25);">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="text-secondary small">Coach:</span>
+              <strong class="text-white">{{ trainer.name }}</strong>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="text-secondary small">Specialization:</span>
+              <span class="badge bg-dark border border-secondary text-warning">{{ trainer.specialization }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-secondary small">Active Roster:</span>
+              <span class="text-success fw-bold">{{ active_assigned }} Active Members</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="selectAssignMember" class="form-label text-secondary small fw-semibold text-uppercase">
+              Choose Member to Assign *
+            </label>
+            <select class="form-select" id="selectAssignMember" name="member_id" required style="background-color: #1a1a1a; color: #ffffff; border-color: rgba(255,255,255,0.2);">
+              <option value="" disabled selected>-- Select a Gym Member --</option>
+              {% if unassigned_members %}
+                <optgroup label="🌟 Unassigned Members">
+                  {% for m in unassigned_members %}
+                    <option value="{{ m.member_id }}">
+                      {{ m.full_name }} ({{ m.member_id }}) — [{{ m.status }}] {{ m.plan_name or 'Standard' }}
+                    </option>
+                  {% endfor %}
+                </optgroup>
+              {% endif %}
+              {% if other_assigned_members %}
+                <optgroup label="🔄 Reassign from Another Coach">
+                  {% for m in other_assigned_members %}
+                    <option value="{{ m.member_id }}">
+                      {{ m.full_name }} ({{ m.member_id }}) — Currently with {{ m.trainer_name or 'Other Coach' }}
+                    </option>
+                  {% endfor %}
+                </optgroup>
+              {% endif %}
+            </select>
+            <div class="form-text text-muted small mt-2">
+              <i class="bi bi-info-circle me-1"></i> Both the member and Coach {{ trainer.name }} will receive instant dashboard notifications.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25 d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary-fc btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm px-3 fw-bold">
+            <i class="bi bi-check2-circle me-1"></i> Confirm Assignment
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -89,10 +218,15 @@
 </div>
 
 <!-- Table of Assigned Members (NO CHARTS) -->
-<div class="fc-card">
-  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
-    <h6 class="fw-bold mb-0">ASSIGNED GYM MEMBERS</h6>
-    <span class="badge bg-light text-muted border">{{ assigned_members|length }} Trainees</span>
+<div class="fc-card" id="assignedMembersSection">
+  <div class="p-3 px-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0">ASSIGNED GYM MEMBERS</h6>
+      <span class="badge bg-light text-muted border">{{ assigned_members|length }} Trainees</span>
+    </div>
+    <button type="button" class="btn btn-gold btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#assignMemberModal">
+      <i class="bi bi-person-plus-fill me-1"></i> Add Member to Trainer
+    </button>
   </div>
 
   <div class="table-responsive">
@@ -105,7 +239,7 @@
           <th>Membership Plan</th>
           <th>Expiry Date</th>
           <th>Status</th>
-          <th class="text-end">Action</th>
+          <th class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -129,15 +263,26 @@
               {% endif %}
             </td>
             <td class="text-end">
-              <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="btn btn-sm btn-light border">
-                View &rarr;
-              </a>
+              <div class="d-inline-flex gap-2">
+                <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="btn btn-sm btn-dark-outline" title="View Profile">
+                  <i class="bi bi-eye me-1"></i> View
+                </a>
+                <form method="POST" action="{{ url_for('trainers.unassign_member', trainer_id=trainer.trainer_id, member_id=m.member_id) }}" class="d-inline" onsubmit="return confirm('Remove {{ m.full_name }} from coach {{ trainer.name }}?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Unassign Member">
+                    <i class="bi bi-x-circle me-1"></i> Remove
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
         {% else %}
           <tr>
-            <td colspan="7" class="text-center py-4 text-muted">
-              No members are currently assigned to this trainer.
+            <td colspan="7" class="text-center py-5 text-muted">
+              <div class="mb-2"><i class="bi bi-person-badge fs-2 text-secondary opacity-50"></i></div>
+              <p class="mb-2">No members are currently assigned to this trainer.</p>
+              <button type="button" class="btn btn-gold btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#assignMemberModal">
+                <i class="bi bi-person-plus-fill me-1"></i> Assign First Member Now
+              </button>
             </td>
           </tr>
         {% endfor %}

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Trainer Portal - FITCORE Smart Gym OS{% endblock %}</title>
+  
+  <!-- Google Fonts: Outfit (Headings/Brand) + Plus Jakarta Sans (Body/UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- FITCORE Black & Yellow CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261008_white_canvas">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20261008_white_canvas">
+  
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div id="wrapper">
+  <!-- Trainer Sidebar -->
+  <aside id="sidebar">
+    <div class="brand-header">
+      <div class="brand-icon-box">
+        <i class="bi bi-lightning-charge-fill"></i>
+      </div>
+      <div>
+        <h4 class="brand-title-text">FIT<span>CORE</span></h4>
+        <div class="brand-subtitle-text">TRAINER PORTAL</div>
+      </div>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="menu-section-label">OVERVIEW</div>
+      
+      <a href="{{ url_for('trainer.dashboard') }}" class="nav-link-custom {% if request.endpoint == 'trainer.dashboard' %}active{% endif %}">
+        <i class="bi bi-grid-fill"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <div class="menu-section-label">CLIENT MANAGEMENT</div>
+
+      <a href="{{ url_for('trainer.profile') }}" class="nav-link-custom {% if request.endpoint == 'trainer.profile' %}active{% endif %}">
+        <i class="bi bi-person-circle"></i>
+        <span>My Profile</span>
+      </a>
+
+      <a href="{{ url_for('trainer.members') }}" class="nav-link-custom {% if request.endpoint in ['trainer.members', 'trainer.member_detail'] %}active{% endif %}">
+        <i class="bi bi-people-fill"></i>
+        <span>My Members</span>
+      </a>
+
+      <a href="{{ url_for('trainer.attendance') }}" class="nav-link-custom {% if request.endpoint == 'trainer.attendance' %}active{% endif %}">
+        <i class="bi bi-calendar-check-fill"></i>
+        <span>Attendance</span>
+      </a>
+
+      <div class="menu-section-label">TRAINING & WORKOUTS</div>
+
+      <a href="{{ url_for('trainer.workouts') }}" class="nav-link-custom {% if request.endpoint == 'trainer.workouts' %}active{% endif %}">
+        <i class="bi bi-fire"></i>
+        <span>Workout Plans</span>
+      </a>
+
+      <a href="{{ url_for('trainer.schedule') }}" class="nav-link-custom {% if request.endpoint == 'trainer.schedule' %}active{% endif %}">
+        <i class="bi bi-clock-history"></i>
+        <span>Schedule & Sessions</span>
+      </a>
+
+      <div class="menu-section-label">COMMUNICATION</div>
+
+      <a href="{{ url_for('trainer.notifications') }}" class="nav-link-custom {% if request.endpoint == 'trainer.notifications' %}active{% endif %}">
+        <i class="bi bi-bell-fill"></i>
+        <span>Notifications</span>
+      </a>
+
+      <a href="{{ url_for('trainer.settings') }}" class="nav-link-custom {% if request.endpoint == 'trainer.settings' %}active{% endif %}">
+        <i class="bi bi-gear-fill"></i>
+        <span>Settings</span>
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2" style="border-color: rgba(255, 77, 77, 0.4); color: var(--fc-danger);">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div id="main-content">
+    <!-- Topbar Header -->
+    <header class="topbar">
+      <div class="d-flex align-items-center gap-3">
+        <button id="sidebarToggle" class="btn btn-sm btn-dark d-lg-none" type="button" aria-label="Toggle navigation" style="background: var(--fc-card-black); border-color: var(--fc-border);">
+          <i class="bi bi-list fs-5"></i>
+        </button>
+        
+        <div class="gym-status-badge" title="Trainer Access">
+          <span class="pulse-dot pulse-dot-green"></span>
+          <span>FITCORE TRAINER OS</span>
+        </div>
+
+        <span class="text-secondary d-none d-md-inline" style="font-size: 0.82rem;">
+          <i class="bi bi-person-badge-fill me-1 text-warning"></i>Trainer ID: <strong class="text-white">{{ session.get('trainer_id', 'TRAINER') }}</strong>
+        </span>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Notifications Bell -->
+        <a href="{{ url_for('trainer.notifications') }}" class="position-relative text-secondary p-2 text-decoration-none">
+          <i class="bi bi-bell fs-5 text-light"></i>
+        </a>
+
+        <!-- Trainer Profile Dropdown -->
+        <div class="dropdown">
+          <button class="btn admin-pill-dropdown dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-fill" style="color: var(--fc-primary-yellow);"></i>
+            <span class="fw-semibold">{{ session.get('name', 'Trainer') }}</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-sm" style="background-color: var(--fc-card-black); border-color: var(--fc-border);">
+            <li class="dropdown-header text-muted">Role: Fitness Trainer</li>
+            <li><a class="dropdown-item" href="{{ url_for('trainer.profile') }}"><i class="bi bi-person me-2"></i> My Profile</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('trainer.members') }}"><i class="bi bi-people me-2"></i> My Members</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('trainer.settings') }}"><i class="bi bi-gear me-2"></i> Settings</a></li>
+            <li><hr class="dropdown-divider" style="border-color: var(--fc-border);"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content Container -->
+    <main class="page-content-wrapper">
+      <!-- Flash Alert Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages-container mb-3 no-print">
+            {% for category, message in messages %}
+              <div class="alert {% if category in ['danger', 'error'] %}alert-fc-danger{% else %}alert-fc-warning{% endif %} alert-dismissible fade show d-flex align-items-center" role="alert">
+                <i class="bi {% if category in ['danger', 'error'] %}bi-exclamation-octagon-fill{% else %}bi-check-circle-fill{% endif %} me-2 fs-5"></i>
+                <div class="flex-grow-1">{{ message }}</div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Main Template Body Content -->
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer border-top border-secondary border-opacity-25 px-4 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-center small text-secondary">
+      <div>
+        <strong>FITCORE</strong> &bull; TRAINER PORTAL &copy; 2026. All rights reserved.
+      </div>
+      <div class="d-flex align-items-center gap-3 mt-2 mt-sm-0">
+        <span class="d-flex align-items-center gap-1">
+          <span class="pulse-dot pulse-dot-green" style="width: 6px; height: 6px;"></span>
+          <span>Trainer Status: Active Coach</span>
+        </span>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- Mobile Sidebar Backdrop -->
+<div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Global App Logic -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

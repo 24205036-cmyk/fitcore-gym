@@ -1,0 +1,167 @@
+{% extends 'member/base.html' %}
+
+{% block title %}My Attendance - FITCORE Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">My Attendance & Gate Check-In</h3>
+      <p class="text-secondary small mb-0">Record your gym visits, check-in & check-out timings, and workout duration.</p>
+    </div>
+    <div>
+      {% if currently_inside %}
+        <form method="POST" action="{{ url_for('member.attendance_checkout') }}" class="d-inline">
+          <button type="submit" class="btn btn-danger px-3 py-2 fw-bold shadow-sm">
+            <i class="bi bi-box-arrow-right me-1"></i> Check Out Now
+          </button>
+        </form>
+      {% else %}
+        <form method="POST" action="{{ url_for('member.attendance_checkin') }}" class="d-inline">
+          <button type="submit" class="btn btn-gold px-3 py-2 fw-bold shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Check In to Gym
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Real-Time Status Card -->
+  <div class="card card-custom p-3 mb-4" style="border-left: 4px solid {% if currently_inside %}#10B981{% else %}var(--fc-primary-yellow){% endif %};">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          {% if currently_inside %}
+            <span class="badge bg-success px-2 py-1"><i class="bi bi-broadcast me-1"></i> LIVE INSIDE</span>
+            <span class="text-white fw-bold">Active Gym Session in Progress</span>
+          {% else %}
+            <span class="badge bg-secondary px-2 py-1">NOT CHECKED IN</span>
+            <span class="text-white fw-bold">Ready to Start Today's Training?</span>
+          {% endif %}
+        </div>
+        <div class="text-secondary small">
+          {% if currently_inside %}
+            Checked in at <strong class="text-warning">{{ active_attendance.time_display or active_attendance.check_in_time }}</strong> (Date: {{ active_attendance.check_in_date }}).
+            Workout Elapsed:
+            <span class="live-stopwatch text-warning fw-bold font-monospace ms-1" data-checkin-iso="{{ active_attendance.check_in_dt.isoformat() if active_attendance and active_attendance.check_in_dt and active_attendance.check_in_dt.isoformat else (active_attendance.check_in if active_attendance else '') }}">
+              <i class="bi bi-stopwatch text-warning me-1"></i><span class="timer-display">00:00:00</span>
+            </span>.
+            Remember to check out when finished!
+          {% else %}
+            Click "Check In to Gym" when you arrive at FITCORE to notify your trainer and update live occupancy.
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        {% if currently_inside %}
+          <form method="POST" action="{{ url_for('member.attendance_checkout') }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold">
+              <i class="bi bi-door-open me-1"></i> Check Out
+            </button>
+          </form>
+        {% else %}
+          <form method="POST" action="{{ url_for('member.attendance_checkin') }}">
+            <button type="submit" class="btn btn-gold btn-sm px-3 fw-bold">
+              <i class="bi bi-check2-circle me-1"></i> Mark Check In
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="card card-custom p-3">
+        <div class="text-secondary small text-uppercase fw-semibold mb-1">Total Visits Recorded</div>
+        <div class="fs-2 fw-bold text-white">{{ total_visits }} <span class="fs-6 text-secondary fw-normal">sessions</span></div>
+        <div class="text-muted small">Since joining FITCORE</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card card-custom p-3">
+        <div class="text-secondary small text-uppercase fw-semibold mb-1">Visits This Month</div>
+        <div class="fs-2 fw-bold text-warning">{{ month_visits }} <span class="fs-6 text-secondary fw-normal">sessions</span></div>
+        <div class="text-muted small">Consistent training progress</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card card-custom p-3">
+        <div class="text-secondary small text-uppercase fw-semibold mb-1">Member Check-In ID</div>
+        <div class="fs-2 fw-bold text-info">{{ member.member_id }}</div>
+        <div class="text-muted small">Scan this code or tap Check In above</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance Table -->
+  <div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold text-white mb-0">Session Log</h5>
+      <span class="badge bg-dark border border-secondary text-muted small">Read-Only Official Record</span>
+    </div>
+
+    {% if records %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.9rem;">
+          <thead style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <tr class="text-secondary" style="font-size: 0.78rem; text-transform: uppercase;">
+              <th>Date</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Duration</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+              <tr>
+                <td class="fw-semibold text-white">
+                  {{ r.check_in_date or (r.check_in[:10] if r.check_in else 'N/A') }}
+                </td>
+                <td>
+                  <span class="text-warning fw-semibold">
+                    {{ r.time_display or (r.check_in[11:16] if r.check_in else 'N/A') }}
+                  </span>
+                </td>
+                <td class="text-secondary">
+                  {% if r.check_out_time or r.check_out %}
+                    <span class="text-info fw-semibold">{{ r.check_out_time or (r.check_out[11:16] if r.check_out|length > 15 else r.check_out) }}</span>
+                  {% else %}
+                    <span class="badge bg-dark border border-secondary text-muted">Active Now</span>
+                  {% endif %}
+                </td>
+                <td class="text-white">
+                  {{ r.duration_display or (r.duration_minutes ~ ' mins' if r.duration_minutes else 'In Progress') }}
+                </td>
+                <td>
+                  {% if r.status == 'Inside' %}
+                    <span class="badge bg-success">
+                      <i class="bi bi-person-walking me-1"></i> Inside
+                    </span>
+                  {% else %}
+                    <span class="badge bg-dark border border-secondary text-secondary">
+                      Checked Out
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-calendar-x fs-1 mb-2 d-block text-muted"></i>
+        <h6 class="text-white">No attendance check-ins found</h6>
+        <p class="small text-muted mb-0">Your workouts will appear here as soon as you scan your ID at the gym entrance.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

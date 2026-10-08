@@ -1,0 +1,165 @@
+{% extends 'trainer/base.html' %}
+
+{% block title %}Training Schedule - FITCORE Trainer{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">Session Schedule & Appointments</h3>
+      <p class="text-secondary small mb-0">Coordinate 1-on-1 personal training sessions and track completion statuses.</p>
+    </div>
+    <button class="btn btn-gold btn-sm px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#bookSessionModal">
+      <i class="bi bi-calendar-plus-fill me-1"></i> Book New Session
+    </button>
+  </div>
+
+  <div class="card card-custom p-4">
+    <h5 class="fw-bold text-white mb-3">Scheduled Sessions</h5>
+
+    {% if schedules %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.9rem;">
+          <thead style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <tr class="text-secondary" style="font-size: 0.78rem; text-transform: uppercase;">
+              <th>Date & Time</th>
+              <th>Member Name & ID</th>
+              <th>Session Type</th>
+              <th>Notes</th>
+              <th>Current Status</th>
+              <th class="text-end">Update Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in schedules %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-white">{{ s.date }}</div>
+                  <div class="text-warning small"><i class="bi bi-clock me-1"></i>{{ s.time }}</div>
+                </td>
+                <td>
+                  <div class="fw-semibold text-white">{{ s.member_name }}</div>
+                  <div class="text-secondary small">{{ s.member_id }}</div>
+                </td>
+                <td class="text-secondary">
+                  <span class="badge bg-dark border border-secondary text-white">{{ s.session_type }}</span>
+                </td>
+                <td class="text-secondary small">
+                  {{ s.notes or 'Standard training routine' }}
+                </td>
+                <td>
+                  <span class="badge {% if s.status == 'Completed' %}bg-success{% elif s.status == 'Cancelled' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                    {{ s.status }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="dropdown d-inline-block">
+                    <button class="btn btn-sm btn-dark border-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem;">
+                      Change Status
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" style="background-color: var(--fc-card-black); border-color: var(--fc-border);">
+                      <li>
+                        <form method="POST" action="{{ url_for('trainer.schedule') }}">
+                          <input type="hidden" name="action" value="update_status">
+                          <input type="hidden" name="schedule_id" value="{{ s.schedule_id }}">
+                          <input type="hidden" name="status" value="Scheduled">
+                          <button type="submit" class="dropdown-item text-warning small"><i class="bi bi-hourglass me-2"></i> Scheduled</button>
+                        </form>
+                      </li>
+                      <li>
+                        <form method="POST" action="{{ url_for('trainer.schedule') }}">
+                          <input type="hidden" name="action" value="update_status">
+                          <input type="hidden" name="schedule_id" value="{{ s.schedule_id }}">
+                          <input type="hidden" name="status" value="Completed">
+                          <button type="submit" class="dropdown-item text-success small"><i class="bi bi-check-circle me-2"></i> Completed</button>
+                        </form>
+                      </li>
+                      <li>
+                        <form method="POST" action="{{ url_for('trainer.schedule') }}">
+                          <input type="hidden" name="action" value="update_status">
+                          <input type="hidden" name="schedule_id" value="{{ s.schedule_id }}">
+                          <input type="hidden" name="status" value="Cancelled">
+                          <button type="submit" class="dropdown-item text-danger small"><i class="bi bi-x-circle me-2"></i> Cancelled</button>
+                        </form>
+                      </li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-calendar-x fs-1 mb-2 d-block text-muted"></i>
+        <h6 class="text-white">No sessions currently scheduled</h6>
+        <p class="small text-muted mb-3">Book personal training timeslots or consultation appointments with your clients.</p>
+        <button class="btn btn-gold btn-sm px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#bookSessionModal">
+          <i class="bi bi-calendar-plus-fill me-1"></i> Book First Session
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Modal: Book New Session -->
+<div class="modal fade" id="bookSessionModal" tabindex="-1" aria-labelledby="bookSessionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+      <div class="modal-header border-secondary border-opacity-25">
+        <h5 class="modal-title fw-bold" id="bookSessionModalLabel">
+          <i class="bi bi-calendar-plus text-warning me-2"></i>Book Client Training Session
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('trainer.schedule') }}">
+        <input type="hidden" name="action" value="create">
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label for="member_id" class="form-label text-secondary small text-uppercase fw-semibold">Client Member *</label>
+            <select class="form-select" id="member_id" name="member_id" required>
+              <option value="">-- Choose Assigned Member --</option>
+              {% for m in assigned_members %}
+                <option value="{{ m.member_id }}">{{ m.full_name }} ({{ m.member_id }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="date" class="form-label text-secondary small text-uppercase fw-semibold">Date *</label>
+              <input type="date" class="form-control" id="date" name="date" required>
+            </div>
+            <div class="col-6">
+              <label for="time" class="form-label text-secondary small text-uppercase fw-semibold">Time *</label>
+              <input type="time" class="form-control" id="time" name="time" required value="07:00">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="session_type" class="form-label text-secondary small text-uppercase fw-semibold">Session Type</label>
+            <select class="form-select" id="session_type" name="session_type">
+              <option value="Personal Training">Personal Training (1-on-1)</option>
+              <option value="Form Assessment">Form & Technique Assessment</option>
+              <option value="Fitness Evaluation">Body Composition & Fitness Check</option>
+              <option value="Nutrition Consultation">Nutrition & Diet Consultation</option>
+            </select>
+          </div>
+
+          <div class="mb-2">
+            <label for="notes" class="form-label text-secondary small text-uppercase fw-semibold">Focus / Session Goal</label>
+            <input type="text" class="form-control" id="notes" name="notes" placeholder="e.g. Chest & Triceps hypertrophic circuit">
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm px-4 fw-bold">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

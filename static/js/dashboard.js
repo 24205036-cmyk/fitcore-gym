@@ -32,23 +32,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if (occBarEl) {
           occBarEl.style.width = `${Math.min(100, data.percentage)}%`;
           occBarEl.className = 'fc-occupancy-bar';
-          if (data.percentage <= 50) {
-            occBarEl.classList.add('bg-success');
-          } else if (data.percentage <= 80) {
-            occBarEl.classList.add('bg-warning');
-          } else if (data.percentage <= 99) {
-            occBarEl.classList.add('bg-orange');
-          } else {
-            occBarEl.classList.add('bg-danger');
-          }
         }
 
         // Update Status Badge
         if (occStatusBadgeEl) {
-          occStatusBadgeEl.className = `badge ${data.badge_class} fs-6 py-2 px-3`;
+          if (data.percentage >= 100) {
+            occStatusBadgeEl.className = 'occupancy-crowded-pill';
+          } else if (data.percentage >= 70) {
+            occStatusBadgeEl.className = 'occupancy-busy-pill';
+          } else {
+            occStatusBadgeEl.className = 'occupancy-normal-pill';
+          }
         }
         if (occStatusTextEl) {
-          occStatusTextEl.innerHTML = `<span class="me-1">${data.emoji}</span> ${data.status}`;
+          occStatusTextEl.textContent = data.status || 'NORMAL';
         }
       })
       .catch(err => {

@@ -1,0 +1,139 @@
+{% extends 'member/base.html' %}
+
+{% block title %}My Membership - FITCORE{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">My Membership Plan</h3>
+      <p class="text-secondary small mb-0">Overview of your active subscription, validity, and plan tier.</p>
+    </div>
+    <span class="badge {% if status_label == 'ACTIVE' %}bg-success{% elif status_label == 'EXPIRING SOON' %}bg-warning text-dark{% else %}bg-danger{% endif %} px-3 py-2 fs-6">
+      {{ status_label }}
+    </span>
+  </div>
+
+  <!-- Clear Warning Alert if Expired or Expiring Soon -->
+  {% if status_label == 'EXPIRED' %}
+    <div class="alert alert-danger d-flex align-items-center mb-4 p-3" style="background: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #ff8888; border-radius: 12px;">
+      <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+      <div>
+        <h5 class="fw-bold mb-1">Your Membership Has Expired</h5>
+        <div class="small">Your subscription ended on <strong>{{ member.end_date }}</strong>. Please contact gym reception or your administrator to renew your plan and reactivate full floor access.</div>
+      </div>
+    </div>
+  {% elif status_label == 'EXPIRING SOON' %}
+    <div class="alert alert-warning d-flex align-items-center mb-4 p-3" style="background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffda6a; border-radius: 12px;">
+      <i class="bi bi-clock-history fs-3 me-3 text-warning"></i>
+      <div>
+        <h5 class="fw-bold mb-1">Membership Expiring Soon ({{ days_remaining }} Days Remaining)</h5>
+        <div class="small">Your membership will expire on <strong>{{ member.end_date }}</strong>. Speak with the front desk to avoid any disruption in your training routines.</div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Primary Membership Card -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-8">
+      <div class="card card-custom p-4 h-100" style="border-top: 4px solid var(--fc-primary-yellow);">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="badge" style="background: rgba(255, 199, 0, 0.2); color: var(--fc-primary-yellow); font-size: 0.75rem;">CURRENT PLAN</span>
+            <h2 class="fw-bold text-white mt-1 mb-0">{{ member.plan_name or 'Standard Fitness' }}</h2>
+          </div>
+          <div class="text-end">
+            <div class="text-secondary small text-uppercase">Plan Fee</div>
+            <div class="fs-3 fw-bold text-warning">₹{{ member.plan_price or (plan.price if plan else '1000') }}</div>
+          </div>
+        </div>
+
+        <div class="row g-3 py-3 border-top border-bottom border-secondary border-opacity-25 my-3">
+          <div class="col-6 col-md-3">
+            <div class="text-secondary small text-uppercase">Start Date</div>
+            <div class="fw-bold text-white fs-6">{{ member.start_date or 'N/A' }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-secondary small text-uppercase">End / Expiry Date</div>
+            <div class="fw-bold text-white fs-6">{{ member.end_date or 'N/A' }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-secondary small text-uppercase">Remaining Days</div>
+            <div class="fw-bold {% if days_remaining > 7 %}text-success{% elif days_remaining > 0 %}text-warning{% else %}text-danger{% endif %} fs-6">
+              {{ days_remaining }} Days
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-secondary small text-uppercase">Payment Status</div>
+            <div>
+              <span class="badge {% if member.payment_status == 'Paid' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                {{ member.payment_status or 'Paid' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-secondary small">
+          <i class="bi bi-info-circle me-1 text-warning"></i>
+          {{ plan.description if plan else 'Includes standard access to gym strength area, cardio machines, and locker facilities during standard operating hours.' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Status Box -->
+    <div class="col-12 col-lg-4">
+      <div class="card card-custom p-4 h-100 d-flex flex-column justify-content-between">
+        <div>
+          <h5 class="fw-bold text-white mb-3">Facility Privileges</h5>
+          <ul class="list-unstyled text-secondary small d-flex flex-column gap-2 mb-0">
+            <li class="d-flex align-items-center gap-2">
+              <i class="bi bi-check-circle-fill text-warning"></i> Full Gym Floor Access
+            </li>
+            <li class="d-flex align-items-center gap-2">
+              <i class="bi bi-check-circle-fill text-warning"></i> Locker Room & Showers
+            </li>
+            <li class="d-flex align-items-center gap-2">
+              <i class="bi bi-check-circle-fill text-warning"></i> Real-time Occupancy Monitoring
+            </li>
+            <li class="d-flex align-items-center gap-2">
+              <i class="bi bi-check-circle-fill text-warning"></i> Assigned Workout Schedules
+            </li>
+            <li class="d-flex align-items-center gap-2">
+              <i class="bi bi-check-circle-fill text-warning"></i> Check-in Pass via Turnstile
+            </li>
+          </ul>
+        </div>
+
+        <div class="pt-3 border-top border-secondary border-opacity-25 mt-3">
+          <div class="small text-muted mb-2">Need to change your plan?</div>
+          <div class="text-white small">Visit the gym reception desk or speak with an administrator.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Available Gym Membership Plans for Reference -->
+  <div class="card card-custom p-4">
+    <h5 class="fw-bold text-white mb-3">All FITCORE Membership Options</h5>
+    <div class="row g-3">
+      {% for p in all_plans %}
+        <div class="col-12 col-md-6 col-xl-3">
+          <div class="p-3 rounded h-100 {% if p.plan_id == member.plan_id %}border border-warning{% endif %}" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="fw-bold text-white">{{ p.name }}</span>
+              {% if p.plan_id == member.plan_id %}
+                <span class="badge bg-warning text-dark" style="font-size: 0.68rem;">CURRENT</span>
+              {% endif %}
+            </div>
+            <div class="fs-4 fw-bold text-warning mb-1">₹{{ p.price }}</div>
+            <div class="text-secondary small mb-2">{{ p.duration_days }} Days Validity</div>
+            <p class="text-muted small mb-0" style="font-size: 0.8rem;">{{ p.description or 'All fitness zones included.' }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

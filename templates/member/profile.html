@@ -1,0 +1,131 @@
+{% extends 'member/base.html' %}
+
+{% block title %}My Profile - FITCORE Member{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">My Profile</h3>
+      <p class="text-secondary small mb-0">View and update your personal contact details.</p>
+    </div>
+    <span class="badge bg-dark border border-secondary text-warning px-3 py-2">
+      <i class="bi bi-shield-lock-fill me-1"></i> Member ID: {{ member.member_id }}
+    </span>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Member ID Card Summary -->
+    <div class="col-12 col-lg-4">
+      <div class="card card-custom p-4 text-center">
+        <div class="mb-3">
+          <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 90px; height: 90px; background: rgba(255, 199, 0, 0.15); border: 2px solid var(--fc-primary-yellow); color: var(--fc-primary-yellow); font-size: 2.5rem;">
+            <i class="bi bi-person-fill"></i>
+          </div>
+        </div>
+
+        <h4 class="fw-bold text-white mb-1">{{ member.full_name }}</h4>
+        <div class="text-secondary small mb-3">{{ member.email }}</div>
+
+        <div class="d-flex justify-content-center gap-2 mb-4">
+          <span class="badge {% if member.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %} px-3 py-1">
+            Status: {{ member.status }}
+          </span>
+          <span class="badge bg-dark border border-secondary text-warning px-3 py-1">
+            Role: Member
+          </span>
+        </div>
+
+        <div class="border-top border-secondary border-opacity-25 pt-3 text-start">
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+            <span class="text-secondary">Member ID</span>
+            <strong class="text-white">{{ member.member_id }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+            <span class="text-secondary">Current Plan</span>
+            <strong class="text-warning">{{ member.plan_name or 'Standard' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-10 small">
+            <span class="text-secondary">Join Date</span>
+            <strong class="text-white">{{ member.join_date or member.start_date or 'N/A' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-2 small">
+            <span class="text-secondary">Assigned Trainer</span>
+            <strong class="text-white">{{ member.trainer_name or (trainer.name if trainer else 'None Assigned') }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="col-12 col-lg-8">
+      <div class="card card-custom p-4">
+        <h5 class="fw-bold text-white mb-3">Edit Personal Details</h5>
+        <p class="text-secondary small mb-4">
+          Note: Membership plans, assigned trainer, and administrative statuses can only be modified by gym administrators.
+        </p>
+
+        <form method="POST" action="{{ url_for('member.profile') }}">
+          <div class="row g-3">
+            <!-- Full Name (Read-only as per policy) -->
+            <div class="col-12 col-md-6">
+              <label class="form-label text-secondary small text-uppercase fw-semibold">Full Name</label>
+              <input type="text" class="form-control" value="{{ member.full_name }}" disabled style="background-color: rgba(255,255,255,0.05); color: #a0a0a0;">
+              <small class="text-muted" style="font-size: 0.72rem;">Contact admin to update legal name</small>
+            </div>
+
+            <!-- Email (Read-only as per policy) -->
+            <div class="col-12 col-md-6">
+              <label class="form-label text-secondary small text-uppercase fw-semibold">Email Address</label>
+              <input type="email" class="form-control" value="{{ member.email }}" disabled style="background-color: rgba(255,255,255,0.05); color: #a0a0a0;">
+              <small class="text-muted" style="font-size: 0.72rem;">Primary account identifier</small>
+            </div>
+
+            <!-- Phone Number (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="phone" class="form-label text-secondary small text-uppercase fw-semibold">Phone Number *</label>
+              <input type="tel" class="form-control" id="phone" name="phone" required value="{{ member.phone }}">
+            </div>
+
+            <!-- Gender (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="gender" class="form-label text-secondary small text-uppercase fw-semibold">Gender</label>
+              <select class="form-select" id="gender" name="gender">
+                <option value="Male" {% if member.gender == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if member.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Other" {% if member.gender == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+
+            <!-- Date of Birth (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="date_of_birth" class="form-label text-secondary small text-uppercase fw-semibold">Date of Birth</label>
+              <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ member.date_of_birth }}">
+            </div>
+
+            <!-- Emergency Contact (Editable) -->
+            <div class="col-12 col-md-6">
+              <label for="emergency_contact" class="form-label text-secondary small text-uppercase fw-semibold">Emergency Contact</label>
+              <input type="text" class="form-control" id="emergency_contact" name="emergency_contact" value="{{ member.emergency_contact or '' }}" placeholder="Name & Phone">
+            </div>
+
+            <!-- Address (Editable) -->
+            <div class="col-12">
+              <label for="address" class="form-label text-secondary small text-uppercase fw-semibold">Residential Address</label>
+              <input type="text" class="form-control" id="address" name="address" value="{{ member.address or '' }}" placeholder="Street, City, Postal Code">
+            </div>
+          </div>
+
+          <div class="mt-4 text-end">
+            <button type="submit" class="btn btn-gold px-4 fw-bold">
+              <i class="bi bi-check2-circle me-1"></i> Save Profile Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

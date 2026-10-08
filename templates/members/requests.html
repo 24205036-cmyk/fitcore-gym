@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Member Requests - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1 text-white">Pending Member Requests</h3>
+    <p class="text-secondary small mb-0">Review online registrations, approve accounts, assign coaches, or reject applications.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('members.list_members') }}" class="btn btn-dark-outline btn-sm">
+      <i class="bi bi-people me-1"></i> Active Members List
+    </a>
+  </div>
+</div>
+
+<!-- Status Filter Tabs -->
+<div class="d-flex gap-2 mb-4">
+  <a href="{{ url_for('members.member_requests', status='Pending') }}" class="btn btn-sm {% if status_filter == 'Pending' %}btn-gold fw-bold{% else %}btn-dark border-secondary text-secondary{% endif %}">
+    <i class="bi bi-hourglass-split me-1"></i> Pending ({{ pending_count }})
+  </a>
+  <a href="{{ url_for('members.member_requests', status='Rejected') }}" class="btn btn-sm {% if status_filter == 'Rejected' %}btn-danger fw-bold{% else %}btn-dark border-secondary text-secondary{% endif %}">
+    <i class="bi bi-x-circle me-1"></i> Rejected ({{ rejected_count }})
+  </a>
+  <a href="{{ url_for('members.member_requests', status='All') }}" class="btn btn-sm {% if status_filter == 'All' %}btn-gold fw-bold{% else %}btn-dark border-secondary text-secondary{% endif %}">
+    <i class="bi bi-list-ul me-1"></i> All Requests
+  </a>
+</div>
+
+<!-- Requests Table Card -->
+<div class="card card-custom p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.9rem;">
+      <thead style="background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <tr class="text-secondary" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">
+          <th class="ps-4">Member Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Registration Date</th>
+          <th>Fitness Goal</th>
+          <th>Status</th>
+          <th class="text-end pe-4">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in requests %}
+          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+            <td class="ps-4">
+              <div class="fw-bold text-white">{{ r.full_name }}</div>
+              <div class="text-secondary small">ID: <span class="text-warning">{{ r.member_id }}</span></div>
+            </td>
+            <td class="text-secondary">{{ r.email }}</td>
+            <td class="text-secondary">{{ r.phone }}</td>
+            <td class="text-secondary">
+              {{ r.created_at.strftime('%d %b %Y, %I:%M %p') if r.created_at else (r.join_date or 'Recent') }}
+            </td>
+            <td>
+              <span class="badge" style="background: rgba(255, 208, 0, 0.15); color: var(--fc-primary-yellow); font-size: 0.75rem; border: 1px solid rgba(255, 208, 0, 0.3);">
+                {{ r.fitness_goal or 'General Fitness' }}
+              </span>
+            </td>
+            <td>
+              {% if r.status in ['Pending', 'pending'] %}
+                <span class="badge bg-warning text-dark fw-bold px-2 py-1">
+                  <i class="bi bi-clock me-1"></i> Pending
+                </span>
+              {% elif r.status in ['Rejected', 'rejected'] %}
+                <span class="badge bg-danger px-2 py-1" title="{{ r.rejection_reason }}">
+                  <i class="bi bi-x-circle me-1"></i> Rejected
+                </span>
+              {% else %}
+                <span class="badge bg-success px-2 py-1">
+                  <i class="bi bi-check-circle me-1"></i> Approved
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <div class="d-inline-flex gap-2">
+                <!-- VIEW Button -->
+                <button type="button" class="btn btn-dark-outline btn-sm" data-bs-toggle="modal" data-bs-target="#viewModal{{ r.member_id }}" title="View Request Details">
+                  <i class="bi bi-eye text-info me-1"></i> View
+                </button>
+
+                {% if r.status in ['Pending', 'pending', 'Rejected', 'rejected'] %}
+                  <!-- ACCEPT Button -->
+                  <button type="button" class="btn btn-gold btn-sm fw-bold px-2" data-bs-toggle="modal" data-bs-target="#acceptModal{{ r.member_id }}" title="Accept & Assign Coach">
+                    <i class="bi bi-check-circle-fill me-1"></i> Accept
+                  </button>
+
+                  <!-- REJECT Button -->
+                  {% if r.status in ['Pending', 'pending'] %}
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal{{ r.member_id }}" title="Reject Request">
+                      <i class="bi bi-x-circle me-1"></i> Reject
+                    </button>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted small align-self-center">Active Member</span>
+                {% endif %}
+              </div>
+
+              <!-- Modal: VIEW Request -->
+              <div class="modal fade text-start" id="viewModal{{ r.member_id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+                    <div class="modal-header border-secondary border-opacity-25">
+                      <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="bi bi-person-lines-fill text-warning"></i> Member Application: {{ r.full_name }}
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                      <div class="row g-3 small">
+                        <div class="col-6">
+                          <span class="text-secondary">Full Name</span>
+                          <div class="fw-bold text-white fs-6">{{ r.full_name }}</div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Member ID</span>
+                          <div class="fw-bold text-warning fs-6">{{ r.member_id }}</div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Email</span>
+                          <div class="fw-semibold text-white">{{ r.email }}</div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Phone</span>
+                          <div class="fw-semibold text-white">{{ r.phone }}</div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Gender / Age</span>
+                          <div class="fw-semibold text-white">{{ r.gender }}, {{ r.age or 'N/A' }} yrs</div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Date of Birth</span>
+                          <div class="fw-semibold text-white">{{ r.date_of_birth or 'N/A' }}</div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Fitness Goal</span>
+                          <div>
+                            <span class="badge bg-warning text-dark fw-bold">{{ r.fitness_goal or 'General Fitness' }}</span>
+                          </div>
+                        </div>
+                        <div class="col-6">
+                          <span class="text-secondary">Requested Plan</span>
+                          <div class="fw-bold text-warning">{{ r.plan_name or 'Standard' }} (₹{{ r.plan_price or 0 }})</div>
+                        </div>
+                        <div class="col-12">
+                          <span class="text-secondary">Address</span>
+                          <div class="text-white">{{ r.address or 'None specified' }}</div>
+                        </div>
+                        <div class="col-12">
+                          <span class="text-secondary">Registration Date</span>
+                          <div class="text-white">{{ r.created_at.strftime('%d %b %Y, %I:%M %p') if r.created_at else r.join_date }}</div>
+                        </div>
+                        {% if r.rejection_reason %}
+                          <div class="col-12">
+                            <div class="p-3 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                              <strong class="text-danger d-block mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Rejection Reason:</strong>
+                              <span class="text-secondary">{{ r.rejection_reason }}</span>
+                            </div>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="modal-footer border-secondary border-opacity-25">
+                      <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal: ACCEPT & ASSIGN TRAINER -->
+              <div class="modal fade text-start" id="acceptModal{{ r.member_id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+                    <div class="modal-header border-secondary border-opacity-25">
+                      <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Accept & Assign Coach
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('members.accept_member_request', member_id=r.member_id) }}">
+                      <div class="modal-body p-4">
+                        <div class="p-3 rounded mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                          <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Member:</span>
+                            <strong class="text-white">{{ r.full_name }}</strong>
+                          </div>
+                          <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Fitness Goal:</span>
+                            <span class="badge bg-warning text-dark">{{ r.fitness_goal or 'General Fitness' }}</span>
+                          </div>
+                          <div class="d-flex justify-content-between">
+                            <span class="text-secondary">Membership Plan:</span>
+                            <span class="text-warning fw-semibold">{{ r.plan_name or 'Standard' }}</span>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label for="trainerSelect{{ r.member_id }}" class="form-label text-secondary small fw-semibold text-uppercase">
+                            Assign Trainer *
+                          </label>
+                          <select class="form-select" id="trainerSelect{{ r.member_id }}" name="trainer_id" required>
+                            <option value="">-- Select Active Trainer --</option>
+                            {% for t in trainers %}
+                              <option value="{{ t.trainer_id }}">{{ t.name }} ({{ t.specialization or 'Fitness Coach' }})</option>
+                            {% endfor %}
+                          </select>
+                          <div class="form-text text-muted small mt-1">
+                            The assigned trainer will receive a notification and see {{ r.full_name }} in their client roster.
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-gold btn-sm px-3 fw-bold">
+                          <i class="bi bi-check2-circle me-1"></i> Confirm Assignment
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal: REJECT Request -->
+              <div class="modal fade text-start" id="rejectModal{{ r.member_id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="background-color: var(--fc-card-black); border: 1px solid var(--fc-border); color: #ffffff;">
+                    <div class="modal-header border-secondary border-opacity-25">
+                      <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Reject Application
+                      </h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('members.reject_member_request', member_id=r.member_id) }}">
+                      <div class="modal-body p-4">
+                        <p class="text-secondary small mb-3">
+                          You are rejecting the application for <strong class="text-white">{{ r.full_name }}</strong>. Please specify the reason below.
+                        </p>
+                        <div class="mb-3">
+                          <label for="reason{{ r.member_id }}" class="form-label text-secondary small fw-semibold text-uppercase">
+                            Rejection Reason *
+                          </label>
+                          <textarea class="form-control" id="reason{{ r.member_id }}" name="rejection_reason" rows="3" required placeholder="e.g. Registration information is incomplete.">Registration information is incomplete.</textarea>
+                          <div class="form-text text-muted small mt-1">
+                            The member will see this reason when attempting to sign in.
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm px-3 fw-bold">
+                          <i class="bi bi-x-circle me-1"></i> Confirm Rejection
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-secondary">
+              <i class="bi bi-person-check fs-1 text-muted d-block mb-2"></i>
+              <h6 class="text-white">No pending registration requests</h6>
+              <p class="small text-muted mb-0">All submitted member registrations have been reviewed.</p>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

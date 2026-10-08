@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Member - FITCORE{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('members.list_members') }}" class="text-decoration-none text-muted small">
+    &larr; Back to Members Directory
+  </a>
+  <h1 class="h3 fw-bold mt-1">Register New Member</h1>
+  <p class="text-muted small mb-0">Enroll a gym member, assign workout plan, coach, and log initial payment</p>
+</div>
+
+<div class="row">
+  <div class="col-12 col-lg-9">
+    <div class="fc-card p-4">
+      <form method="POST" action="{{ url_for('members.add_member') }}" enctype="multipart/form-data">
+        
+        <!-- Section 1: Personal Details -->
+        <h6 class="fw-bold text-primary mb-3">
+          <i class="bi bi-person-lines-fill me-1"></i> Personal Information
+        </h6>
+        
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <label for="full_name" class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="full_name" name="full_name" placeholder="e.g. Rahul Sharma" required value="{{ form.full_name if form else '' }}">
+          </div>
+
+          <div class="col-6 col-md-3">
+            <label for="age" class="form-label">Age</label>
+            <input type="number" class="form-control" id="age" name="age" min="12" max="100" placeholder="e.g. 25" value="{{ form.age if form else '' }}">
+          </div>
+
+          <div class="col-6 col-md-3">
+            <label for="gender" class="form-label">Gender</label>
+            <select class="form-select" id="gender" name="gender">
+              <option value="Male" {% if form and form.gender == 'Male' %}selected{% endif %}>Male</option>
+              <option value="Female" {% if form and form.gender == 'Female' %}selected{% endif %}>Female</option>
+              <option value="Other" {% if form and form.gender == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="phone" class="form-label">Phone Number *</label>
+            <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g. +91 98765 43210" required value="{{ form.phone if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="email" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="e.g. member@example.com" value="{{ form.email if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="emergency_contact" class="form-label">Emergency Contact Phone</label>
+            <input type="tel" class="form-control" id="emergency_contact" name="emergency_contact" placeholder="e.g. +91 98765 00000" value="{{ form.emergency_contact if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="profile_photo" class="form-label">Profile Photo (JPG / PNG)</label>
+            <input type="file" class="form-control" id="profile_photo" name="profile_photo" accept="image/png, image/jpeg, image/jpg">
+          </div>
+
+          <div class="col-12">
+            <label for="address" class="form-label">Residential Address</label>
+            <input type="text" class="form-control" id="address" name="address" placeholder="e.g. Flat 302, Green Park Avenue, Bangalore" value="{{ form.address if form else '' }}">
+          </div>
+        </div>
+
+        <!-- Section 2: Membership Plan & Trainer -->
+        <h6 class="fw-bold text-primary mb-3 pt-3 border-top">
+          <i class="bi bi-award-fill me-1"></i> Plan & Trainer Assignment
+        </h6>
+
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <label for="member-plan-select" class="form-label">Membership Plan *</label>
+            <select class="form-select" id="member-plan-select" name="plan_id" required>
+              <option value="" disabled selected>-- Select a Plan --</option>
+              {% for p in plans %}
+                <option value="{{ p.plan_id }}" data-duration="{{ p.duration_days }}" data-price="{{ p.price }}">
+                  {{ p.name }} ({{ p.duration_days }} Days - {{ p.price|currency }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="trainer_id" class="form-label">Assign Personal Trainer</label>
+            <select class="form-select" id="trainer_id" name="trainer_id">
+              <option value="">No Trainer Assigned</option>
+              {% for t in trainers %}
+                <option value="{{ t.trainer_id }}">{{ t.name }} ({{ t.specialization }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="start_date" class="form-label">Membership Start Date *</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ default_start }}" required>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="end_date" class="form-label">Membership Expiry Date</label>
+            <input type="date" class="form-control bg-light" id="end_date" name="end_date" placeholder="Auto-calculated">
+            <small class="text-muted" style="font-size: 0.75rem;">Automatically calculated based on chosen plan duration.</small>
+          </div>
+        </div>
+
+        <!-- Section 3: Initial Payment Recording -->
+        <h6 class="fw-bold text-primary mb-3 pt-3 border-top">
+          <i class="bi bi-credit-card-2-front-fill me-1"></i> Payment Recording
+        </h6>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="record_payment" name="record_payment" value="yes" checked>
+          <label class="form-check-label fw-semibold" for="record_payment">
+            Record Enrollment Fee Payment Now
+          </label>
+        </div>
+
+        <div id="payment-fields-wrap" class="row g-3 mb-4 p-3 bg-light rounded-3 border">
+          <div class="col-12 col-md-4">
+            <label for="payment_method" class="form-label">Payment Method</label>
+            <select class="form-select" id="payment_method" name="payment_method">
+              <option value="Cash">Cash</option>
+              <option value="UPI" selected>UPI</option>
+              <option value="Card">Credit / Debit Card</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="payment_status" class="form-label">Payment Status</label>
+            <select class="form-select" id="payment_status" name="payment_status">
+              <option value="Paid" selected>Paid</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="transaction_id" class="form-label">Transaction / Reference ID</label>
+            <input type="text" class="form-control" id="transaction_id" name="transaction_id" placeholder="Optional TXN ID">
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('members.list_members') }}" class="btn btn-secondary-fc">Cancel</a>
+          <button type="submit" class="btn btn-primary-fc px-4">
+            <i class="bi bi-check2-circle me-1"></i> Complete Registration
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-3 mt-4 mt-lg-0">
+    <div class="fc-card p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-info-circle text-primary me-1"></i> Quick Tips</h6>
+      <ul class="text-muted small ps-3 mb-0" style="line-height: 1.7;">
+        <li>Member ID will be sequentially generated (e.g. <strong>GYM011</strong>).</li>
+        <li>Expiry date automatically updates when you pick a plan duration.</li>
+        <li>Initial payment entry will be automatically reflected in today's revenue calculations.</li>
+        <li>You can assign personal trainers anytime later from the profile page.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/members.js') }}"></script>
+{% endblock %}

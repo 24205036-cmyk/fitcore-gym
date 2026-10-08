@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Trainer - FITCORE{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('trainers.list_trainers') }}" class="text-decoration-none text-muted small">
+    &larr; Back to Trainers Directory
+  </a>
+  <h1 class="h3 fw-bold mt-1">Register Fitness Coach</h1>
+  <p class="text-muted small mb-0">Add a new gym instructor with certification and specialization details</p>
+</div>
+
+<div class="row">
+  <div class="col-12 col-lg-8">
+    <div class="fc-card p-4">
+      <form method="POST" action="{{ url_for('trainers.add_trainer') }}" enctype="multipart/form-data">
+        
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <label for="name" class="form-label">Full Name *</label>
+            <input type="text" class="form-control" id="name" name="name" placeholder="e.g. Vikram Singh" required value="{{ form.name if form else '' }}">
+          </div>
+
+          <div class="col-6 col-md-3">
+            <label for="age" class="form-label">Age</label>
+            <input type="number" class="form-control" id="age" name="age" min="18" max="80" placeholder="e.g. 28" value="{{ form.age if form else '' }}">
+          </div>
+
+          <div class="col-6 col-md-3">
+            <label for="gender" class="form-label">Gender</label>
+            <select class="form-select" id="gender" name="gender">
+              <option value="Male" {% if form and form.gender == 'Male' %}selected{% endif %}>Male</option>
+              <option value="Female" {% if form and form.gender == 'Female' %}selected{% endif %}>Female</option>
+              <option value="Other" {% if form and form.gender == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="phone" class="form-label">Phone Number *</label>
+            <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g. +91 98765 11000" required value="{{ form.phone if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="email" class="form-label">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="e.g. trainer@fitcore.local" value="{{ form.email if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="specialization" class="form-label">Primary Specialization *</label>
+            <select class="form-select" id="specialization" name="specialization" required>
+              <option value="" disabled selected>-- Select Specialization --</option>
+              {% for s in specializations %}
+                <option value="{{ s }}" {% if form and form.specialization == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="experience" class="form-label">Experience (e.g. 4 Years)</label>
+            <input type="text" class="form-control" id="experience" name="experience" placeholder="e.g. 5 Years" value="{{ form.experience if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="salary" class="form-label">Monthly Salary (INR)</label>
+            <input type="number" class="form-control" id="salary" name="salary" placeholder="e.g. 35000" value="{{ form.salary if form else '' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="joining_date" class="form-label">Joining Date</label>
+            <input type="date" class="form-control" id="joining_date" name="joining_date" value="{{ default_date }}">
+          </div>
+
+          <div class="col-12">
+            <label for="profile_photo" class="form-label">Coach Photo (JPG / PNG)</label>
+            <input type="file" class="form-control" id="profile_photo" name="profile_photo" accept="image/png, image/jpeg, image/jpg">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('trainers.list_trainers') }}" class="btn btn-secondary-fc">Cancel</a>
+          <button type="submit" class="btn btn-primary-fc px-4">
+            <i class="bi bi-check-lg me-1"></i> Register Coach
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

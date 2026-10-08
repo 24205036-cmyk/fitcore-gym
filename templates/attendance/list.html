@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Gym Attendance & Check-Ins - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Gym Attendance & Facility Traffic</h1>
+    <p class="text-muted small mb-0">Live check-in logging, workout duration tracking, and occupancy history</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('reports.export_attendance_csv') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+    <a href="{{ url_for('attendance.checkin') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-box-arrow-in-right me-1"></i> Check-In Member
+    </a>
+  </div>
+</div>
+
+<!-- Attendance Statistics Summary Cards (Section 35 - NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Today's Check-Ins</div>
+      <div class="stat-value text-primary">{{ today_checkins }}</div>
+      <div class="stat-subtext text-muted">Total gym visits logged today</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Currently Inside</div>
+      <div class="stat-value text-success d-flex align-items-center gap-2">
+        <span>{{ currently_inside }}</span>
+        <span class="fs-6 fw-normal text-muted">/ {{ capacity }}</span>
+      </div>
+      <div class="stat-subtext text-muted">Active workouts on the floor</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Today's Check-Outs</div>
+      <div class="stat-value text-secondary">{{ today_checkouts }}</div>
+      <div class="stat-subtext text-muted">Completed workout sessions</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Avg Visit Duration</div>
+      <div class="stat-value fs-3 text-dark">{{ avg_duration_display }}</div>
+      <div class="stat-subtext text-muted">Average workout time today</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters Toolbar -->
+<div class="fc-card p-3 mb-4">
+  <form method="GET" action="{{ url_for('attendance.list_attendance') }}" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search by member name or ID..." value="{{ search_q }}">
+      </div>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <select name="period" class="form-select" onchange="if(this.value!=='custom') this.form.submit();">
+        <option value="today" {% if filter_period == 'today' %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if filter_period == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="this_week" {% if filter_period == 'this_week' %}selected{% endif %}>This Week</option>
+        <option value="this_month" {% if filter_period == 'this_month' %}selected{% endif %}>This Month</option>
+        <option value="custom" {% if filter_period == 'custom' %}selected{% endif %}>Custom Date</option>
+      </select>
+    </div>
+
+    {% if filter_period == 'custom' %}
+      <div class="col-6 col-md-2">
+        <input type="date" name="date" class="form-control" value="{{ custom_date }}" onchange="this.form.submit();">
+      </div>
+    {% endif %}
+
+    <div class="col-6 col-md-2">
+      <select name="status" class="form-select" onchange="this.form.submit();">
+        <option value="">All Statuses</option>
+        <option value="Inside" {% if status_filter == 'Inside' %}selected{% endif %}>Currently Inside</option>
+        <option value="Checked Out" {% if status_filter == 'Checked Out' %}selected{% endif %}>Checked Out</option>
+      </select>
+    </div>
+
+    <div class="col-12 col-md-2">
+      <button type="submit" class="btn btn-secondary-fc w-100">
+        <i class="bi bi-funnel me-1"></i> Apply Filter
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Attendance Logs Table -->
+<div class="fc-card mb-4">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">ATTENDANCE LOGS</h6>
+    <span class="badge bg-light text-muted border">{{ records|length }} Records</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="fc-table" id="attendance-table">
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Member Name</th>
+          <th>Check-In Time</th>
+          <th>Check-Out Time</th>
+          <th>Workout Duration</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+          <tr>
+            <td>
+              <span class="badge bg-light text-dark border fw-bold">{{ r.member_id }}</span>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ r.member_name }}</div>
+              <small class="text-muted">{{ r.plan_name }}</small>
+            </td>
+            <td>
+              <i class="bi bi-box-arrow-in-right text-success me-1"></i>
+              {{ r.check_in|format_datetime }}
+            </td>
+            <td>
+              {% if r.check_out %}
+                <i class="bi bi-box-arrow-left text-secondary me-1"></i>
+                {{ r.check_out|format_datetime }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="fw-semibold">{{ r.duration_display or '-' }}</span>
+            </td>
+            <td>
+              {% if r.status == 'Inside' %}
+                <span class="badge-status badge-inside">
+                  <i class="bi bi-dot"></i>Inside
+                </span>
+              {% else %}
+                <span class="badge-status badge-status-inactive">Checked Out</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if r.status == 'Inside' %}
+                <form method="POST" action="{{ url_for('attendance.checkout', record_id=r._id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-danger btn-sm py-1 px-2" title="Check Out Member">
+                    <i class="bi bi-box-arrow-left me-1"></i> Check Out
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted small">Done</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+              No attendance records found for the selected filter period.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Occupancy History Table (Section 36 - STRICTLY NO CHARTS) -->
+<div class="fc-card">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <div>
+      <h6 class="fw-bold mb-0">HOURLY OCCUPANCY TIMELINE ({{ target_date_str|format_date }})</h6>
+      <small class="text-muted">Calculated dynamically from attendance check-in and checkout timestamps (No charts used)</small>
+    </div>
+    <a href="{{ url_for('reports.export_occupancy_csv', date=target_date_str) }}" class="btn btn-sm btn-light border">
+      <i class="bi bi-download me-1"></i> CSV
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Time Interval</th>
+          <th>People Inside</th>
+          <th>Gym Capacity</th>
+          <th>Occupancy Level</th>
+          <th>Traffic Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in hourly_history %}
+          <tr>
+            <td class="fw-bold text-dark">
+              <i class="bi bi-clock me-1 text-muted"></i>{{ h.time }}
+            </td>
+            <td>
+              <span class="fw-bold fs-6">{{ h.people_inside }}</span> members
+            </td>
+            <td>{{ h.capacity }}</td>
+            <td style="min-width: 180px;">
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height: 8px;">
+                  <div class="progress-bar {{ h.badge_class }}" style="width: {{ h.percentage }}%;"></div>
+                </div>
+                <small class="fw-bold text-muted" style="width: 45px;">{{ h.percentage }}%</small>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ h.badge_class }} py-1 px-2">
+                {{ h.emoji }} {{ h.status }}
+              </span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+{% endblock %}

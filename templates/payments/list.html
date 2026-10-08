@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Payments & Revenue - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Payments & Revenue Tracking</h1>
+    <p class="text-muted small mb-0">Financial ledger, cash flow statistics, and payment method analytics (Zero Charts)</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('reports.export_payments_csv') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+    <a href="{{ url_for('payments.add_payment') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-plus-circle me-1"></i> Record Payment
+    </a>
+  </div>
+</div>
+
+<!-- Revenue Summary Cards (Section 39 - STRICTLY NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Today's Revenue</div>
+      <div class="stat-value text-primary fs-3">{{ today_revenue }}</div>
+      <div class="stat-subtext text-muted">Receipts today</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">This Week</div>
+      <div class="stat-value text-success fs-3">{{ week_revenue }}</div>
+      <div class="stat-subtext text-muted">Weekly collections</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">This Month</div>
+      <div class="stat-value text-info fs-3">{{ month_revenue }}</div>
+      <div class="stat-subtext text-muted">Monthly billing cycle</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-6 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">This Year</div>
+      <div class="stat-value text-dark fs-3">{{ year_revenue }}</div>
+      <div class="stat-subtext text-muted">Annual turnover</div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl">
+    <div class="fc-card stat-card bg-light">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value text-primary fs-3">{{ total_revenue }}</div>
+      <div class="stat-subtext text-muted">All-time paid fees</div>
+    </div>
+  </div>
+</div>
+
+<!-- Breakdown Cards: Methods & Statuses (Section 39 - NO CHARTS) -->
+<div class="row g-4 mb-4">
+  <!-- Payment Method Summary Table -->
+  <div class="col-12 col-lg-6">
+    <div class="fc-card h-100">
+      <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0">PAYMENT METHOD BREAKDOWN</h6>
+        <span class="badge bg-light text-muted border">Channels</span>
+      </div>
+      <div class="table-responsive">
+        <table class="fc-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Transactions</th>
+              <th class="text-end">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m, data in method_stats.items() %}
+              <tr>
+                <td>
+                  <span class="fw-semibold">
+                    {% if m == 'Cash' %}<i class="bi bi-cash-stack text-success me-2"></i>
+                    {% elif m == 'UPI' %}<i class="bi bi-qr-code text-primary me-2"></i>
+                    {% elif m == 'Card' %}<i class="bi bi-credit-card text-info me-2"></i>
+                    {% else %}<i class="bi bi-bank text-secondary me-2"></i>{% endif %}
+                    {{ m }}
+                  </span>
+                </td>
+                <td>{{ data.count }} payments</td>
+                <td class="text-end fw-bold text-dark">{{ data.amount_formatted }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Status Summary Table -->
+  <div class="col-12 col-lg-6">
+    <div class="fc-card h-100">
+      <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0">PAYMENT STATUS BREAKDOWN</h6>
+        <span class="badge bg-light text-muted border">Audit</span>
+      </div>
+      <div class="table-responsive">
+        <table class="fc-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Count</th>
+              <th class="text-end">Total Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s, data in status_stats.items() %}
+              <tr>
+                <td>
+                  {% if s == 'Paid' %}
+                    <span class="badge-status badge-status-active">Paid</span>
+                  {% elif s == 'Pending' %}
+                    <span class="badge-status badge-status-suspended">Pending</span>
+                  {% else %}
+                    <span class="badge-status badge-status-expired">Failed</span>
+                  {% endif %}
+                </td>
+                <td>{{ data.count }} transactions</td>
+                <td class="text-end fw-bold text-dark">{{ data.amount_formatted }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="fc-card p-3 mb-4">
+  <form method="GET" action="{{ url_for('payments.list_payments') }}" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search by payment ID, member, TXN ID..." value="{{ search_q }}">
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <select name="method" class="form-select" onchange="this.form.submit();">
+        <option value="">All Methods</option>
+        {% for m in payment_methods %}
+          <option value="{{ m }}" {% if method_filter == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <select name="status" class="form-select" onchange="this.form.submit();">
+        <option value="">All Statuses</option>
+        {% for s in payment_statuses %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-2">
+      <button type="submit" class="btn btn-secondary-fc w-100">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Payments Table -->
+<div class="fc-card">
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Payment ID</th>
+          <th>Member Name</th>
+          <th>Plan</th>
+          <th>Amount</th>
+          <th>Payment Date</th>
+          <th>Method</th>
+          <th>Transaction ID</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+          <tr>
+            <td><span class="badge bg-light text-dark border fw-bold">{{ p.payment_id }}</span></td>
+            <td>
+              <a href="{{ url_for('members.view_member', member_id=p.member_id) }}" class="fw-bold text-dark text-decoration-none">
+                {{ p.member_name }}
+              </a>
+              <div class="text-muted small">{{ p.member_id }}</div>
+            </td>
+            <td><span class="badge bg-light text-primary border">{{ p.plan_name }}</span></td>
+            <td class="fw-bold text-dark fs-6">{{ p.amount|currency }}</td>
+            <td class="text-muted">{{ p.payment_date|format_datetime }}</td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ p.payment_method }}</span>
+            </td>
+            <td>
+              <code class="text-muted small">{{ p.transaction_id or '-' }}</code>
+            </td>
+            <td>
+              {% if p.payment_status == 'Paid' %}
+                <span class="badge-status badge-status-active">Paid</span>
+              {% elif p.payment_status == 'Pending' %}
+                <span class="badge-status badge-status-suspended">Pending</span>
+              {% else %}
+                <span class="badge-status badge-status-expired">Failed</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-credit-card fs-1 d-block mb-2 text-secondary"></i>
+              No payments recorded matching the filter criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

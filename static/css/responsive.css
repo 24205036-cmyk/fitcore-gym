@@ -1,0 +1,67 @@
+/* Responsive styling for FitCore */
+
+@media (max-width: 991.98px) {
+  #sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -270px;
+    z-index: 1050;
+  }
+
+  #sidebar.show {
+    left: 0;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1045;
+    display: none;
+  }
+
+  .sidebar-backdrop.show {
+    display: block;
+  }
+
+  .topbar {
+    padding: 10px 16px;
+  }
+
+  .page-content-wrapper {
+    padding: 16px;
+  }
+
+  .stat-card {
+    padding: 16px 18px;
+  }
+
+  .stat-value {
+    font-size: 1.6rem;
+  }
+
+  .occupancy-count-huge {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .gym-status-badge {
+    font-size: 0.72rem;
+    padding: 4px 8px;
+  }
+
+  .page-title-box h1 {
+    font-size: 1.35rem;
+  }
+}

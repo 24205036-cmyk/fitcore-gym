@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Center - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Reports & Business Intelligence</h1>
+    <p class="text-muted small mb-0">Generate, print, and export CSV audit reports across members, attendance, and revenue (Zero Charts)</p>
+  </div>
+</div>
+
+<!-- High-Level Overview Cards (NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Total Membership</div>
+      <div class="stat-value text-primary">{{ total_members }}</div>
+      <div class="stat-subtext text-success">{{ active_members }} Active / {{ expired_members }} Expired</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Today's Visits</div>
+      <div class="stat-value text-success">{{ today_visits }}</div>
+      <div class="stat-subtext text-muted">{{ current_inside }} currently on floor</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Gym Occupancy</div>
+      <div class="stat-value text-dark">{{ occ_pct }}%</div>
+      <div class="stat-subtext"><span class="badge {{ occ_status.badge_class }}">{{ occ_status.label }}</span></div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value text-primary fs-3">{{ total_revenue_formatted }}</div>
+      <div class="stat-subtext text-muted">All collections to date</div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Navigation Hub Cards -->
+<div class="row g-4">
+  <!-- Member Report Card -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="fc-card p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="stat-icon stat-icon-primary mb-3">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Member Report</h5>
+        <p class="text-muted small mb-4">
+          Detailed subscriber register breakdown by active, expired, and suspended status with plan tiers.
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.members_report') }}" class="btn btn-secondary-fc btn-sm w-100">
+          <i class="bi bi-eye me-1"></i> View Report
+        </a>
+        <a href="{{ url_for('reports.export_members_csv') }}" class="btn btn-light border btn-sm" title="Download CSV">
+          <i class="bi bi-download"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance Report Card -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="fc-card p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="stat-icon stat-icon-success mb-3">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Attendance Report</h5>
+        <p class="text-muted small mb-4">
+          Comprehensive visit logs, entrance/exit timestamps, workout session durations, and member frequency.
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.attendance_report') }}" class="btn btn-secondary-fc btn-sm w-100">
+          <i class="bi bi-eye me-1"></i> View Report
+        </a>
+        <a href="{{ url_for('reports.export_attendance_csv') }}" class="btn btn-light border btn-sm" title="Download CSV">
+          <i class="bi bi-download"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Report Card -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="fc-card p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="stat-icon stat-icon-info mb-3">
+          <i class="bi bi-currency-rupee"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Revenue Report</h5>
+        <p class="text-muted small mb-4">
+          Financial statements, daily/monthly turnover, payment method splits, and pending fee audits.
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.revenue_report') }}" class="btn btn-secondary-fc btn-sm w-100">
+          <i class="bi bi-eye me-1"></i> View Report
+        </a>
+        <a href="{{ url_for('reports.export_payments_csv') }}" class="btn btn-light border btn-sm" title="Download CSV">
+          <i class="bi bi-download"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Occupancy Report Card -->
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="fc-card p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="stat-icon stat-icon-purple mb-3">
+          <i class="bi bi-speedometer2"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Occupancy Report</h5>
+        <p class="text-muted small mb-4">
+          Hourly capacity utilization history and peak traffic analysis presented in clean data tables.
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.occupancy_report') }}" class="btn btn-secondary-fc btn-sm w-100">
+          <i class="bi bi-eye me-1"></i> View Report
+        </a>
+        <a href="{{ url_for('reports.export_occupancy_csv') }}" class="btn btn-light border btn-sm" title="Download CSV">
+          <i class="bi bi-download"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

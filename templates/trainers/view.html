@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Trainer Profile: {{ trainer.name }} - FITCORE{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+  <div>
+    <a href="{{ url_for('trainers.list_trainers') }}" class="text-decoration-none text-muted small">
+      &larr; Back to Trainers Directory
+    </a>
+    <div class="d-flex align-items-center gap-2 mt-1">
+      <h1 class="h3 fw-bold mb-0">{{ trainer.name }}</h1>
+      <span class="badge bg-light text-dark border">{{ trainer.trainer_id }}</span>
+      {% if trainer.status == 'Active' %}
+        <span class="badge-status badge-status-active">Active</span>
+      {% else %}
+        <span class="badge-status badge-status-inactive">Inactive</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('trainers.edit_trainer', trainer_id=trainer.trainer_id) }}" class="btn btn-secondary-fc btn-sm">
+      <i class="bi bi-pencil me-1"></i> Edit Profile
+    </a>
+  </div>
+</div>
+
+<!-- Details & Summary Cards (NO CHARTS) -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-8">
+    <div class="fc-card p-4 h-100">
+      <div class="d-flex flex-column flex-sm-row align-items-start gap-4">
+        {% if trainer.photo %}
+          <img src="/{{ trainer.photo }}" alt="{{ trainer.name }}" class="member-avatar member-avatar-lg shadow-sm">
+        {% else %}
+          <div class="member-avatar member-avatar-lg shadow-sm" style="background-color: #f5f3ff; color: #7c3aed;">
+            {{ trainer.name[:2]|upper }}
+          </div>
+        {% endif %}
+
+        <div class="flex-grow-1">
+          <div class="row g-3">
+            <div class="col-6 col-sm-4">
+              <div class="stat-label">Specialization</div>
+              <div class="fw-bold text-primary">{{ trainer.specialization }}</div>
+            </div>
+            <div class="col-6 col-sm-4">
+              <div class="stat-label">Experience</div>
+              <div class="fw-semibold">{{ trainer.experience or '-' }}</div>
+            </div>
+            <div class="col-6 col-sm-4">
+              <div class="stat-label">Phone</div>
+              <div class="fw-semibold">{{ trainer.phone }}</div>
+            </div>
+            <div class="col-6 col-sm-4">
+              <div class="stat-label">Email</div>
+              <div class="fw-semibold text-truncate">{{ trainer.email or '-' }}</div>
+            </div>
+            <div class="col-6 col-sm-4">
+              <div class="stat-label">Age & Gender</div>
+              <div class="fw-semibold">{{ trainer.gender }}, {{ trainer.age or '-' }} yrs</div>
+            </div>
+            <div class="col-6 col-sm-4">
+              <div class="stat-label">Monthly Salary</div>
+              <div class="fw-semibold text-success">{{ salary_formatted }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assigned Stats Card (NO CHARTS) -->
+  <div class="col-12 col-lg-4">
+    <div class="fc-card p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="stat-label">Trainee Roster</div>
+        <div class="stat-value text-primary mt-1">{{ total_assigned }}</div>
+        <div class="text-muted small">Total Assigned Clients</div>
+      </div>
+
+      <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+        <span class="text-success fw-semibold"><i class="bi bi-person-check me-1"></i>{{ active_assigned }} Active</span>
+        <span class="text-muted small">{{ total_assigned - active_assigned }} Expired/Other</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Table of Assigned Members (NO CHARTS) -->
+<div class="fc-card">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">ASSIGNED GYM MEMBERS</h6>
+    <span class="badge bg-light text-muted border">{{ assigned_members|length }} Trainees</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Member ID</th>
+          <th>Contact</th>
+          <th>Membership Plan</th>
+          <th>Expiry Date</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in assigned_members %}
+          <tr>
+            <td>
+              <div class="fw-bold">{{ m.full_name }}</div>
+              <small class="text-muted">{{ m.gender }}, {{ m.age or '-' }} yrs</small>
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ m.member_id }}</span></td>
+            <td>{{ m.phone }}</td>
+            <td><span class="badge bg-light text-primary border">{{ m.plan_name }}</span></td>
+            <td>{{ m.end_date|format_date }}</td>
+            <td>
+              {% if m.status == 'Active' %}
+                <span class="badge-status badge-status-active">Active</span>
+              {% elif m.status == 'Expired' %}
+                <span class="badge-status badge-status-expired">Expired</span>
+              {% else %}
+                <span class="badge-status badge-status-suspended">{{ m.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="btn btn-sm btn-light border">
+                View &rarr;
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              No members are currently assigned to this trainer.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,628 @@
+/* ==========================================================================
+   FITCORE - Smart Gym Management & Real-Time Occupancy System
+   Commercial Gym Management Theme
+   ========================================================================== */
+
+:root {
+  --fc-primary: #f97316;        /* Energetic Gym Orange */
+  --fc-primary-hover: #ea580c;
+  --fc-primary-light: #fff7ed;
+  --fc-sidebar-bg: #0f172a;      /* Deep Slate Dark Sidebar */
+  --fc-sidebar-hover: #1e293b;
+  --fc-sidebar-active: #334155;
+  --fc-sidebar-text: #94a3b8;
+  --fc-sidebar-text-active: #ffffff;
+  --fc-body-bg: #f8fafc;
+  --fc-card-bg: #ffffff;
+  --fc-text-main: #1e293b;
+  --fc-text-muted: #64748b;
+  --fc-border-color: #e2e8f0;
+  --fc-success: #10b981;
+  --fc-warning: #f59e0b;
+  --fc-danger: #ef4444;
+  --fc-info: #0284c7;
+  --fc-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  --fc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+  --fc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+  --fc-radius: 12px;
+  --fc-radius-sm: 8px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--fc-body-bg);
+  color: var(--fc-text-main);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------
+   Layout: Sidebar & Main Content
+   --------------------------------------------------------- */
+#wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+#sidebar {
+  width: 270px;
+  min-width: 270px;
+  background-color: var(--fc-sidebar-bg);
+  color: var(--fc-sidebar-text);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  z-index: 1040;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#sidebar .brand-header {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#sidebar .brand-header .brand-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+
+#sidebar .brand-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+#sidebar .brand-subtitle {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #f97316;
+  font-weight: 600;
+  margin: 0;
+}
+
+#sidebar .sidebar-menu {
+  padding: 16px 12px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.menu-section-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #64748b;
+  font-weight: 700;
+  padding: 16px 14px 6px;
+}
+
+.nav-link-custom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  color: var(--fc-sidebar-text);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 500;
+  border-radius: var(--fc-radius-sm);
+  transition: all 0.2s ease;
+  margin-bottom: 3px;
+}
+
+.nav-link-custom i {
+  font-size: 1.15rem;
+  width: 22px;
+  text-align: center;
+}
+
+.nav-link-custom:hover {
+  background-color: var(--fc-sidebar-hover);
+  color: #ffffff;
+}
+
+.nav-link-custom.active {
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.05) 100%);
+  color: #ffffff;
+  font-weight: 600;
+  border-left: 3px solid var(--fc-primary);
+}
+
+.nav-link-custom.active i {
+  color: var(--fc-primary);
+}
+
+#sidebar .sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Main Area */
+#main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: var(--fc-body-bg);
+}
+
+/* Top Navigation Bar */
+.topbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--fc-border-color);
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.page-content-wrapper {
+  padding: 28px;
+  flex: 1;
+}
+
+/* ---------------------------------------------------------
+   Gym Status & Topbar Widgets
+   --------------------------------------------------------- */
+.gym-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+.gym-status-open {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.gym-status-closed {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-animation 2s infinite;
+}
+.pulse-dot-green {
+  background-color: #10b981;
+}
+.pulse-dot-red {
+  background-color: #ef4444;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ---------------------------------------------------------
+   Cards & Metric Widgets
+   --------------------------------------------------------- */
+.fc-card {
+  background-color: var(--fc-card-bg);
+  border: 1px solid var(--fc-border-color);
+  border-radius: var(--fc-radius);
+  box-shadow: var(--fc-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.fc-card:hover {
+  box-shadow: var(--fc-shadow-md);
+}
+
+.stat-card {
+  padding: 22px 24px;
+  position: relative;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  margin-bottom: 12px;
+}
+
+.stat-icon-primary {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+.stat-icon-success {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+.stat-icon-warning {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+.stat-icon-info {
+  background-color: #f0f9ff;
+  color: #0284c7;
+}
+.stat-icon-purple {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--fc-text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 1.95rem;
+  font-weight: 800;
+  color: var(--fc-text-main);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.stat-subtext {
+  font-size: 0.78rem;
+  color: var(--fc-text-muted);
+}
+
+/* ---------------------------------------------------------
+   Live Gym Occupancy Widget (NO CHARTS)
+   --------------------------------------------------------- */
+.occupancy-hero-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+  border-radius: var(--fc-radius);
+  padding: 26px 28px;
+}
+
+.occupancy-header-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #94a3b8;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.occupancy-count-huge {
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.occupancy-capacity-tag {
+  font-size: 1.25rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.occupancy-pct-tag {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f97316;
+}
+
+/* Custom Progress Bar for Occupancy */
+.fc-occupancy-progress {
+  height: 16px;
+  background-color: #334155;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 16px 0;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.fc-occupancy-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.fc-occupancy-bar.bg-warning {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+.fc-occupancy-bar.bg-orange {
+  background: linear-gradient(90deg, #ea580c 0%, #c2410c 100%) !important;
+}
+
+.fc-occupancy-bar.bg-danger {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%) !important;
+}
+
+/* ---------------------------------------------------------
+   Tables & Data Presentation
+   --------------------------------------------------------- */
+.table-responsive {
+  border-radius: var(--fc-radius);
+  overflow-x: auto;
+}
+
+.fc-table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.fc-table thead th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--fc-border-color);
+  white-space: nowrap;
+}
+
+.fc-table tbody td {
+  padding: 14px 18px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--fc-border-color);
+  font-size: 0.88rem;
+  color: var(--fc-text-main);
+}
+
+.fc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fc-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Member Avatars */
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.85rem;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.member-avatar-lg {
+  width: 80px;
+  height: 80px;
+  font-size: 1.8rem;
+}
+
+/* Status Badges */
+.badge-status {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-status-active {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-status-expired {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.badge-status-suspended {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-status-inactive {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-inside {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  animation: pulse-slow 3s infinite;
+}
+
+.bg-orange {
+  background-color: #ea580c !important;
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------
+   Buttons & Form Controls
+   --------------------------------------------------------- */
+.btn-primary-fc {
+  background-color: var(--fc-primary);
+  border-color: var(--fc-primary);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: var(--fc-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.btn-primary-fc:hover, .btn-primary-fc:focus {
+  background-color: var(--fc-primary-hover);
+  border-color: var(--fc-primary-hover);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.25);
+}
+
+.btn-secondary-fc {
+  background-color: #ffffff;
+  border: 1px solid var(--fc-border-color);
+  color: var(--fc-text-main);
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: var(--fc-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.btn-secondary-fc:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.form-control, .form-select {
+  border: 1px solid var(--fc-border-color);
+  border-radius: var(--fc-radius-sm);
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  color: var(--fc-text-main);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--fc-primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+}
+
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ---------------------------------------------------------
+   Activity Feed
+   --------------------------------------------------------- */
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--fc-border-color);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.activity-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------
+   Print Friendly Styles (Section 48)
+   --------------------------------------------------------- */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  #sidebar, 
+  .topbar, 
+  .no-print, 
+  .btn, 
+  .pagination,
+  .quick-checkin-box,
+  .action-buttons-cell,
+  .filters-toolbar {
+    display: none !important;
+  }
+
+  #main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .page-content-wrapper {
+    padding: 0 !important;
+  }
+
+  .fc-card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .fc-table thead th {
+    background-color: #eeeeee !important;
+    color: #000000 !important;
+  }
+
+  .fc-table tbody td {
+    color: #000000 !important;
+    border-bottom: 1px solid #cccccc !important;
+  }
+  
+  .print-header {
+    display: block !important;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+  }
+}
+
+.print-header {
+  display: none;
+}

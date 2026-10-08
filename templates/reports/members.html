@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Member Report - FITCORE{% endblock %}
+
+{% block content %}
+<!-- Print Header (Hidden on screen, visible on print) -->
+<div class="print-header">
+  <h2 class="fw-bold mb-0">FITCORE - Official Member Report</h2>
+  <div class="text-muted small">Generated on {{ now_dt|format_datetime }} | Facility: {{ gym_settings.gym_name }}</div>
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 no-print">
+  <div>
+    <a href="{{ url_for('reports.index') }}" class="text-decoration-none text-muted small">&larr; Back to Reports Hub</a>
+    <h1 class="h3 fw-bold mt-1">Gym Member Audit Report</h1>
+    <p class="text-muted small mb-0">Comprehensive register of gym memberships and renewal dates</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button onclick="window.printReport()" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i> Print Report
+    </button>
+    <a href="{{ url_for('reports.export_members_csv') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export to CSV
+    </a>
+  </div>
+</div>
+
+<!-- Summary Cards (Section 41 - NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Total Members</div>
+      <div class="stat-value text-dark">{{ total_members }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Active Members</div>
+      <div class="stat-value text-success">{{ active_members }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Expired Plans</div>
+      <div class="stat-value text-danger">{{ expired_members }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Suspended</div>
+      <div class="stat-value text-warning">{{ suspended_members }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Inactive</div>
+      <div class="stat-value text-muted">{{ inactive_members }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters (no-print) -->
+<div class="fc-card p-3 mb-4 no-print">
+  <form method="GET" action="{{ url_for('reports.members_report') }}" class="row g-2 align-items-center">
+    <div class="col-6 col-md-4">
+      <select name="status" class="form-select" onchange="this.form.submit();">
+        <option value="">All Statuses</option>
+        <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Expired" {% if status_filter == 'Expired' %}selected{% endif %}>Expired</option>
+        <option value="Suspended" {% if status_filter == 'Suspended' %}selected{% endif %}>Suspended</option>
+        <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+    </div>
+    <div class="col-6 col-md-4">
+      <select name="plan" class="form-select" onchange="this.form.submit();">
+        <option value="">All Plans</option>
+        {% for p in plans %}
+          <option value="{{ p.plan_id }}" {% if plan_filter == p.plan_id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-4">
+      <button type="submit" class="btn btn-secondary-fc w-100">
+        <i class="bi bi-funnel me-1"></i> Apply Filter
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Detailed Table -->
+<div class="fc-card">
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Membership Plan</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Assigned Coach</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+          <tr>
+            <td><span class="badge bg-light text-dark border">{{ m.member_id }}</span></td>
+            <td class="fw-bold">{{ m.full_name }}</td>
+            <td>{{ m.phone }}</td>
+            <td><span class="badge bg-light text-primary border">{{ m.plan_name }}</span></td>
+            <td>{{ m.start_date|format_date }}</td>
+            <td class="{% if m.status == 'Expired' %}text-danger fw-bold{% endif %}">{{ m.end_date|format_date }}</td>
+            <td>{{ m.trainer_name or 'None' }}</td>
+            <td>
+              {% if m.status == 'Active' %}
+                <span class="badge-status badge-status-active">Active</span>
+              {% elif m.status == 'Expired' %}
+                <span class="badge-status badge-status-expired">Expired</span>
+              {% elif m.status == 'Suspended' %}
+                <span class="badge-status badge-status-suspended">Suspended</span>
+              {% else %}
+                <span class="badge-status badge-status-inactive">Inactive</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">No member records match the filter criteria.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

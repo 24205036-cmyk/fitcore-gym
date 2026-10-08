@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FITCORE Gym Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">FITCORE Dashboard</h1>
+    <p class="text-muted small mb-0">Smart Gym Operations & Real-Time Facility Intelligence</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('members.add_member') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-person-plus me-1"></i> Add Member
+    </a>
+    <a href="{{ url_for('attendance.checkin') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-box-arrow-in-right me-1"></i> Quick Check-In
+    </a>
+  </div>
+</div>
+
+<!-- Row 1: Summary Metric Cards (NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <!-- Total Members -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="fc-card stat-card h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Total Members</div>
+          <div class="stat-value">{{ total_members }}</div>
+          <div class="stat-subtext text-success">
+            <i class="bi bi-check-circle me-1"></i>{{ active_members }} Active
+          </div>
+        </div>
+        <div class="stat-icon stat-icon-primary">
+          <i class="bi bi-people-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Members -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="fc-card stat-card h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Active Members</div>
+          <div class="stat-value text-success">{{ active_members }}</div>
+          <div class="stat-subtext text-muted">
+            Valid ongoing memberships
+          </div>
+        </div>
+        <div class="stat-icon stat-icon-success">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expired Memberships -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="fc-card stat-card h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Expired Plans</div>
+          <div class="stat-value text-danger">{{ expired_members }}</div>
+          <div class="stat-subtext text-muted">
+            <a href="{{ url_for('members.list_members', status='Expired') }}" class="text-decoration-none text-danger small">
+              View renewals needed &rarr;
+            </a>
+          </div>
+        </div>
+        <div class="stat-icon stat-icon-warning">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Trainers -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="fc-card stat-card h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Total Trainers</div>
+          <div class="stat-value">{{ total_trainers }}</div>
+          <div class="stat-subtext text-muted">
+            Active fitness coaches
+          </div>
+        </div>
+        <div class="stat-icon stat-icon-purple">
+          <i class="bi bi-person-badge-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: Live Gym Occupancy & Today's Revenue / Quick Check-In -->
+<div class="row g-4 mb-4">
+  <!-- LIVE GYM OCCUPANCY (CORE HIGHLIGHT - NO CHARTS) -->
+  <div class="col-12 col-lg-7">
+    <div class="occupancy-hero-card h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="occupancy-header-title">
+            <span class="pulse-dot pulse-dot-green"></span>
+            <span>LIVE GYM OCCUPANCY MONITOR</span>
+          </div>
+          <div id="live-occupancy-status-badge" class="badge {{ occupancy_status.badge_class }} fs-6 py-2 px-3">
+            <span id="live-occupancy-status-text">
+              <span class="me-1">{{ occupancy_status.emoji }}</span> {{ occupancy_status.label }}
+            </span>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-baseline gap-2 my-2">
+          <span id="live-occupancy-current" class="occupancy-count-huge">{{ current_inside }}</span>
+          <span class="occupancy-capacity-tag">/ <span id="live-occupancy-capacity">{{ capacity }}</span> MAX</span>
+          <span id="live-occupancy-pct" class="occupancy-pct-tag ms-auto">{{ occupancy_pct }}% OCCUPIED</span>
+        </div>
+
+        <!-- Custom Progress Bar -->
+        <div class="fc-occupancy-progress">
+          <div id="live-occupancy-bar" class="fc-occupancy-bar {{ occupancy_status.progress_class }}" style="width: {{ occupancy_pct }}%;"></div>
+        </div>
+
+        <div class="d-flex justify-content-between text-secondary small">
+          <span id="live-occupancy-available" class="fw-semibold text-light">
+            <i class="bi bi-door-open me-1"></i>{{ available_spaces }} spaces available
+          </span>
+          <span>
+            <i class="bi bi-broadcast me-1 text-success"></i>Auto-updates every 15s
+          </span>
+        </div>
+      </div>
+
+      <div class="pt-4 mt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+        <div class="small text-secondary">
+          Threshold Rule: Check-in automatically blocks when occupancy reaches 100%.
+        </div>
+        <a href="{{ url_for('attendance.list_attendance') }}" class="btn btn-outline-light btn-sm text-nowrap">
+          View Live Floor &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Revenue & Quick Check-In Widget -->
+  <div class="col-12 col-lg-5">
+    <div class="d-flex flex-column gap-3 h-100">
+      <!-- Today's Revenue Card -->
+      <div class="fc-card stat-card">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="stat-label">Today's Revenue</div>
+            <div class="stat-value text-primary" style="font-size: 2.2rem;">{{ today_revenue_formatted }}</div>
+            <div class="stat-subtext text-muted">
+              Collected from membership fees & renewals today
+            </div>
+          </div>
+          <div class="stat-icon stat-icon-info">
+            <i class="bi bi-currency-rupee"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Check-in Widget (Section 22) -->
+      <div class="fc-card p-3 p-sm-4 flex-grow-1">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-qr-code-scan text-primary fs-5"></i>
+          <h6 class="fw-bold mb-0">QUICK MEMBER CHECK-IN</h6>
+        </div>
+        <p class="text-muted small mb-3">Search by Member ID (e.g. GYM001), Phone, or Name</p>
+
+        <form id="quick-checkin-form">
+          <div class="input-group mb-2">
+            <input type="text" id="quick-member-id" class="form-control" placeholder="Enter Member ID (e.g. GYM001)" required autocomplete="off">
+            <button type="submit" class="btn btn-primary-fc px-3">
+              <i class="bi bi-check-lg me-1"></i> Check In
+            </button>
+          </div>
+        </form>
+
+        <div id="quick-checkin-alert" class="alert d-none mt-2 mb-0 py-2 small" role="alert"></div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+          <span class="text-muted small">Need advanced search?</span>
+          <a href="{{ url_for('attendance.checkin') }}" class="text-decoration-none small fw-semibold text-primary">
+            Check-In Portal &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 3: Currently Inside Members & Recent Activity List (NO CHARTS) -->
+<div class="row g-4">
+  <!-- Currently Inside Members Table -->
+  <div class="col-12 col-lg-7">
+    <div class="fc-card h-100">
+      <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+            <span class="pulse-dot pulse-dot-green"></span>
+            <span>MEMBERS CURRENTLY INSIDE</span>
+          </h6>
+          <small class="text-muted">{{ inside_members|length }} active workouts right now</small>
+        </div>
+        <a href="{{ url_for('attendance.list_attendance') }}" class="btn btn-sm btn-light border">
+          All Attendance &rarr;
+        </a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="fc-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Member ID</th>
+              <th>Check-In Time</th>
+              <th>Status</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in inside_members %}
+              <tr>
+                <td>
+                  <div class="fw-bold">{{ item.member_name }}</div>
+                  <small class="text-muted">{{ item.plan_name }}</small>
+                </td>
+                <td><span class="badge bg-light text-dark border">{{ item.member_id }}</span></td>
+                <td>
+                  <span class="text-muted"><i class="bi bi-clock me-1"></i>{{ item.time_display }}</span>
+                </td>
+                <td>
+                  <span class="badge-status badge-inside">
+                    <i class="bi bi-dot"></i>Inside
+                  </span>
+                </td>
+                <td class="text-end">
+                  <form method="POST" action="{{ url_for('attendance.checkout', record_id=item._id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Check Out Member">
+                      <i class="bi bi-box-arrow-left me-1"></i>Check Out
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                  <i class="bi bi-door-closed fs-3 d-block mb-1"></i>
+                  No members currently inside the gym floor.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent System Activity Feed (NO CHARTS) -->
+  <div class="col-12 col-lg-5">
+    <div class="fc-card h-100 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0">RECENT ACTIVITY</h6>
+        <span class="badge bg-light text-secondary border">Real-Time Logs</span>
+      </div>
+
+      <div class="activity-feed">
+        {% for act in recent_activities %}
+          <div class="activity-item">
+            <div class="activity-icon-wrap">
+              <i class="bi {{ act.icon }}"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold text-dark small">{{ act.text }}</div>
+              <div class="text-muted" style="font-size: 0.76rem;">{{ act.detail }}</div>
+            </div>
+            <div class="text-muted" style="font-size: 0.72rem;">
+              {{ act.timestamp|format_datetime("%I:%M %p") }}
+            </div>
+          </div>
+        {% else %}
+          <div class="text-center text-muted py-4 small">
+            No recent activity recorded today.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

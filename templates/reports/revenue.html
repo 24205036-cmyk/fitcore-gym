@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Revenue Report - FITCORE{% endblock %}
+
+{% block content %}
+<div class="print-header">
+  <h2 class="fw-bold mb-0">FITCORE - Official Financial & Revenue Report</h2>
+  <div class="text-muted small">Generated on {{ now_dt|format_datetime }} | Facility: {{ gym_settings.gym_name }}</div>
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 no-print">
+  <div>
+    <a href="{{ url_for('reports.index') }}" class="text-decoration-none text-muted small">&larr; Back to Reports Hub</a>
+    <h1 class="h3 fw-bold mt-1">Financial & Revenue Report</h1>
+    <p class="text-muted small mb-0">Audited cash receipts, payment channels, and subscription billing turnover</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button onclick="window.printReport()" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i> Print Report
+    </button>
+    <a href="{{ url_for('reports.export_payments_csv') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export to CSV
+    </a>
+  </div>
+</div>
+
+<!-- Revenue Summary Cards (Section 43 - STRICTLY NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Today's Revenue</div>
+      <div class="stat-value text-primary fs-3">{{ today_rev }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">This Week</div>
+      <div class="stat-value text-success fs-3">{{ week_rev }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">This Month</div>
+      <div class="stat-value text-info fs-3">{{ month_rev }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="fc-card stat-card">
+      <div class="stat-label">This Year</div>
+      <div class="stat-value text-dark fs-3">{{ year_rev }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-md">
+    <div class="fc-card stat-card bg-light">
+      <div class="stat-label">Total Collections</div>
+      <div class="stat-value text-primary fs-3">{{ total_rev }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Payments Table -->
+<div class="fc-card">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">PAYMENT TRANSACTIONS LEDGER</h6>
+    <span class="badge bg-light text-muted border">{{ payments|length }} Payments Listed</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Payment ID</th>
+          <th>Member Name</th>
+          <th>Membership Tier</th>
+          <th>Amount</th>
+          <th>Payment Date</th>
+          <th>Method</th>
+          <th>Transaction ID</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+          <tr>
+            <td><span class="badge bg-light text-dark border fw-bold">{{ p.payment_id }}</span></td>
+            <td>
+              <span class="fw-bold">{{ p.member_name }}</span>
+              <small class="text-muted d-block">{{ p.member_id }}</small>
+            </td>
+            <td><span class="badge bg-light text-primary border">{{ p.plan_name }}</span></td>
+            <td class="fw-bold text-dark fs-6">{{ p.amount|currency }}</td>
+            <td>{{ p.payment_date|format_datetime }}</td>
+            <td><span class="badge bg-light text-dark border">{{ p.payment_method }}</span></td>
+            <td><code>{{ p.transaction_id }}</code></td>
+            <td>
+              {% if p.payment_status == 'Paid' %}
+                <span class="badge-status badge-status-active">Paid</span>
+              {% elif p.payment_status == 'Pending' %}
+                <span class="badge-status badge-status-suspended">Pending</span>
+              {% else %}
+                <span class="badge-status badge-status-expired">Failed</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">No transactions found for this period.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

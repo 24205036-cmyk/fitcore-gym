@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Occupancy Report - FITCORE{% endblock %}
+
+{% block content %}
+<div class="print-header">
+  <h2 class="fw-bold mb-0">FITCORE - Facility Capacity & Real-Time Occupancy Report</h2>
+  <div class="text-muted small">Generated on {{ now_dt|format_datetime }} | Facility: {{ gym_settings.gym_name }}</div>
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 no-print">
+  <div>
+    <a href="{{ url_for('reports.index') }}" class="text-decoration-none text-muted small">&larr; Back to Reports Hub</a>
+    <h1 class="h3 fw-bold mt-1">Gym Occupancy & Density Report</h1>
+    <p class="text-muted small mb-0">Auditing facility floor capacity, peak traffic periods, and headcounts (Zero Charts)</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button onclick="window.printReport()" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i> Print Report
+    </button>
+    <a href="{{ url_for('reports.export_occupancy_csv', date=date_str) }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export to CSV
+    </a>
+  </div>
+</div>
+
+<!-- Summary Cards (Section 46 - NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Current Occupancy</div>
+      <div class="stat-value text-primary fs-3">{{ current_inside }}</div>
+      <div class="stat-subtext text-muted">Members on floor</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Maximum Capacity</div>
+      <div class="stat-value text-dark fs-3">{{ capacity }}</div>
+      <div class="stat-subtext text-muted">Configured safety limit</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Available Spaces</div>
+      <div class="stat-value text-success fs-3">{{ available_spaces }}</div>
+      <div class="stat-subtext text-muted">Vacant spots remaining</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-6 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Occupancy Percentage</div>
+      <div class="stat-value text-primary fs-3">{{ occ_pct }}%</div>
+      <div class="stat-subtext text-muted">Floor density</div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Floor Traffic Status</div>
+      <div class="mt-2">
+        <span class="badge {{ occ_status.badge_class }} fs-6 py-2 px-3">
+          {{ occ_status.emoji }} {{ occ_status.label }}
+        </span>
+      </div>
+      <div class="stat-subtext text-muted mt-2">Real-time status</div>
+    </div>
+  </div>
+</div>
+
+<!-- Date Selector (no-print) -->
+<div class="fc-card p-3 mb-4 no-print">
+  <form method="GET" action="{{ url_for('reports.occupancy_report') }}" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      <label class="form-label mb-1">Select Analysis Date:</label>
+      <input type="date" name="date" class="form-control" value="{{ date_str }}" onchange="this.form.submit();">
+    </div>
+  </form>
+</div>
+
+<!-- Hourly Occupancy History Table (Section 36 & 46 - STRICTLY NO CHARTS) -->
+<div class="fc-card">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">HOURLY OCCUPANCY TIMELINE ANALYSIS ({{ date_str|format_date }})</h6>
+    <span class="badge bg-light text-muted border">8 Intervals Computed</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Time Slot</th>
+          <th>People Inside</th>
+          <th>Maximum Capacity</th>
+          <th>Occupancy Level</th>
+          <th>Crowd Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in hourly_history %}
+          <tr>
+            <td class="fw-bold text-dark">
+              <i class="bi bi-clock me-1 text-muted"></i>{{ h.time }}
+            </td>
+            <td>
+              <span class="fw-bold fs-6">{{ h.people_inside }}</span> members
+            </td>
+            <td>{{ h.capacity }}</td>
+            <td style="min-width: 180px;">
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height: 10px;">
+                  <div class="progress-bar {{ h.badge_class }}" style="width: {{ h.percentage }}%;"></div>
+                </div>
+                <small class="fw-bold text-muted" style="width: 45px;">{{ h.percentage }}%</small>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ h.badge_class }} py-1 px-2">
+                {{ h.emoji }} {{ h.status }}
+              </span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

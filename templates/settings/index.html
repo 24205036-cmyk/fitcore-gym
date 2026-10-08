@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Facility Settings - FITCORE{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="h3 fw-bold mb-1">Facility Settings & Admin Security</h1>
+  <p class="text-muted small mb-0">Configure gym capacity thresholds, hours of operation, and administrator credentials</p>
+</div>
+
+<div class="row g-4">
+  <!-- General Facility Settings Form -->
+  <div class="col-12 col-lg-7">
+    <div class="fc-card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h5 class="fw-bold mb-0">Facility Configuration</h5>
+          <small class="text-muted">Master gym parameters and floor capacity limits</small>
+        </div>
+        <div>
+          {% if gym_open %}
+            <span class="gym-status-badge gym-status-open"><span class="pulse-dot pulse-dot-green"></span> 🟢 OPEN</span>
+          {% else %}
+            <span class="gym-status-badge gym-status-closed"><span class="pulse-dot pulse-dot-red"></span> 🔴 CLOSED</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('settings.index') }}">
+        <input type="hidden" name="action" value="update_settings">
+
+        <div class="mb-3">
+          <label for="gym_name" class="form-label">Gym / Facility Name *</label>
+          <input type="text" class="form-control" id="gym_name" name="gym_name" value="{{ settings.gym_name or 'FITCORE' }}" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label for="gym_phone" class="form-label">Contact Phone</label>
+            <input type="text" class="form-control" id="gym_phone" name="gym_phone" value="{{ settings.gym_phone or '+91 98765 43210' }}">
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="gym_email" class="form-label">Support Email</label>
+            <input type="email" class="form-control" id="gym_email" name="gym_email" value="{{ settings.gym_email or 'admin@fitcore.local' }}">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="gym_address" class="form-label">Facility Street Address</label>
+          <input type="text" class="form-control" id="gym_address" name="gym_address" value="{{ settings.gym_address or '' }}">
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label for="gym_capacity" class="form-label">Floor Maximum Capacity *</label>
+            <div class="input-group">
+              <input type="number" class="form-control" id="gym_capacity" name="gym_capacity" min="5" max="1000" value="{{ settings.gym_capacity or 100 }}" required>
+              <span class="input-group-text">People</span>
+            </div>
+            <small class="text-muted" style="font-size: 0.75rem;">Check-in is blocked when current attendees reach this count.</small>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="currency" class="form-label">Currency Symbol / Code</label>
+            <input type="text" class="form-control" id="currency" name="currency" value="{{ settings.currency or 'INR' }}" readonly>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label for="opening_time" class="form-label">Opening Time</label>
+            <input type="text" class="form-control" id="opening_time" name="opening_time" value="{{ settings.opening_time or '05:00 AM' }}" placeholder="e.g. 05:00 AM">
+          </div>
+
+          <div class="col-6">
+            <label for="closing_time" class="form-label">Closing Time</label>
+            <input type="text" class="form-control" id="closing_time" name="closing_time" value="{{ settings.closing_time or '10:00 PM' }}" placeholder="e.g. 10:00 PM">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="timezone" class="form-label">Timezone</label>
+          <input type="text" class="form-control bg-light" id="timezone" name="timezone" value="{{ settings.timezone or 'Asia/Kolkata' }}" readonly>
+        </div>
+
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary-fc px-4">
+            <i class="bi bi-save me-1"></i> Save Gym Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Profile & Password Change Form -->
+  <div class="col-12 col-lg-5">
+    <div class="d-flex flex-column gap-4">
+      <!-- Admin Profile Box -->
+      <div class="fc-card p-4">
+        <h5 class="fw-bold mb-3 pb-2 border-bottom">Admin Profile</h5>
+        <form method="POST" action="{{ url_for('settings.index') }}">
+          <input type="hidden" name="action" value="update_profile">
+
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control bg-light" value="{{ admin.username if admin else 'admin' }}" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label for="admin_name" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="admin_name" name="admin_name" value="{{ admin.full_name if admin else 'Admin Manager' }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="admin_email" class="form-label">Admin Email</label>
+            <input type="email" class="form-control" id="admin_email" name="admin_email" value="{{ admin.email if admin else 'admin@fitcore.local' }}">
+          </div>
+
+          <button type="submit" class="btn btn-secondary-fc btn-sm w-100">
+            <i class="bi bi-person-check me-1"></i> Update Profile
+          </button>
+        </form>
+      </div>
+
+      <!-- Change Password Box (Section 53) -->
+      <div class="fc-card p-4">
+        <h5 class="fw-bold mb-3 pb-2 border-bottom">
+          <i class="bi bi-shield-lock me-1 text-primary"></i> Change Password
+        </h5>
+        
+        <form method="POST" action="{{ url_for('settings.index') }}">
+          <input type="hidden" name="action" value="change_password">
+
+          <div class="mb-3">
+            <label for="current_password" class="form-label">Current Password *</label>
+            <input type="password" class="form-control" id="current_password" name="current_password" placeholder="Enter current password" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="new_password" class="form-label">New Password *</label>
+            <input type="password" class="form-control" id="new_password" name="new_password" minlength="6" placeholder="Min. 6 characters" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirm New Password *</label>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="6" placeholder="Re-enter new password" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary-fc btn-sm w-100">
+            <i class="bi bi-key me-1"></i> Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

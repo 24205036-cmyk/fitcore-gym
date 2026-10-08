@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Members Directory - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Members Directory</h1>
+    <p class="text-muted small mb-0">Manage registered gym members, active plans, and coach assignments</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('reports.export_members_csv') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+    <a href="{{ url_for('members.add_member') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-person-plus-fill me-1"></i> Add New Member
+    </a>
+  </div>
+</div>
+
+<!-- Search & Filters Toolbar -->
+<div class="fc-card p-3 mb-4">
+  <form method="GET" action="{{ url_for('members.list_members') }}" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search by ID, name, phone, email..." value="{{ search_q }}">
+      </div>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Expired" {% if status_filter == 'Expired' %}selected{% endif %}>Expired</option>
+        <option value="Suspended" {% if status_filter == 'Suspended' %}selected{% endif %}>Suspended</option>
+        <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <select name="plan" class="form-select">
+        <option value="">All Plans</option>
+        {% for p in plans %}
+          <option value="{{ p.plan_id }}" {% if plan_filter == p.plan_id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <select name="trainer" class="form-select">
+        <option value="">All Trainers</option>
+        {% for t in trainers %}
+          <option value="{{ t.trainer_id }}" {% if trainer_filter == t.trainer_id %}selected{% endif %}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2 d-flex gap-2">
+      <select name="sort" class="form-select">
+        <option value="member_id" {% if sort_by == 'member_id' %}selected{% endif %}>ID Order</option>
+        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+        <option value="expiry_asc" {% if sort_by == 'expiry_asc' %}selected{% endif %}>Expiry (Soonest)</option>
+        <option value="expiry_desc" {% if sort_by == 'expiry_desc' %}selected{% endif %}>Expiry (Latest)</option>
+      </select>
+      <button type="submit" class="btn btn-secondary-fc px-3" title="Apply Filters">
+        <i class="bi bi-funnel"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Members Table -->
+<div class="fc-card">
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Photo</th>
+          <th>Member ID</th>
+          <th>Full Name</th>
+          <th>Contact</th>
+          <th>Plan</th>
+          <th>Expiry Date</th>
+          <th>Trainer</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+          <tr>
+            <td>
+              {% if m.photo %}
+                <img src="/{{ m.photo }}" alt="{{ m.full_name }}" class="member-avatar">
+              {% else %}
+                <div class="member-avatar">
+                  {{ m.full_name[:2]|upper }}
+                </div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border fw-bold">{{ m.member_id }}</span>
+            </td>
+            <td>
+              <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="fw-bold text-dark text-decoration-none">
+                {{ m.full_name }}
+              </a>
+              <div class="text-muted small">{{ m.gender }} • {{ m.age or '-' }} yrs</div>
+            </td>
+            <td>
+              <div>{{ m.phone }}</div>
+              <small class="text-muted">{{ m.email or '-' }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-primary border">{{ m.plan_name }}</span>
+            </td>
+            <td>
+              <div class="{% if m.status == 'Expired' %}text-danger fw-bold{% endif %}">
+                {{ m.end_date|format_date }}
+              </div>
+            </td>
+            <td>
+              <span class="text-muted small">
+                {{ m.trainer_name or 'None' }}
+              </span>
+            </td>
+            <td>
+              {% if m.status == 'Active' %}
+                <span class="badge-status badge-status-active">Active</span>
+              {% elif m.status == 'Expired' %}
+                <span class="badge-status badge-status-expired">Expired</span>
+              {% elif m.status == 'Suspended' %}
+                <span class="badge-status badge-status-suspended">Suspended</span>
+              {% else %}
+                <span class="badge-status badge-status-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('members.view_member', member_id=m.member_id) }}" class="btn btn-light border" title="View Profile">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('members.edit_member', member_id=m.member_id) }}" class="btn btn-light border" title="Edit Member">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{{ url_for('members.renew_member', member_id=m.member_id) }}" class="btn btn-light border text-primary" title="Renew Plan">
+                  <i class="bi bi-arrow-repeat"></i>
+                </a>
+                <form method="POST" action="{{ url_for('members.delete_member', member_id=m.member_id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate or remove {{ m.full_name }}?');">
+                  <button type="submit" class="btn btn-light border text-danger" title="Deactivate / Delete">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="9" class="text-center py-5 text-muted">
+              <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
+              No members found matching your search or filter criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+    <div class="p-3 border-top d-flex justify-content-between align-items-center">
+      <small class="text-muted">Showing page {{ page }} of {{ total_pages }} ({{ total_records }} members total)</small>
+      <nav aria-label="Page navigation">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('members.list_members', page=page-1, search=search_q, status=status_filter, plan=plan_filter, trainer=trainer_filter, sort=sort_by) }}">Previous</a>
+          </li>
+          {% for p_num in range(1, total_pages + 1) %}
+            <li class="page-item {% if p_num == page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('members.list_members', page=p_num, search=search_q, status=status_filter, plan=plan_filter, trainer=trainer_filter, sort=sort_by) }}">{{ p_num }}</a>
+            </li>
+          {% endfor %}
+          <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('members.list_members', page=page+1, search=search_q, status=status_filter, plan=plan_filter, trainer=trainer_filter, sort=sort_by) }}">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

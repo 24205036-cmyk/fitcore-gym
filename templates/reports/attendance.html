@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Report - FITCORE{% endblock %}
+
+{% block content %}
+<div class="print-header">
+  <h2 class="fw-bold mb-0">FITCORE - Official Attendance & Visits Report</h2>
+  <div class="text-muted small">Generated on {{ now_dt|format_datetime }} | Facility: {{ gym_settings.gym_name }}</div>
+</div>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 no-print">
+  <div>
+    <a href="{{ url_for('reports.index') }}" class="text-decoration-none text-muted small">&larr; Back to Reports Hub</a>
+    <h1 class="h3 fw-bold mt-1">Gym Floor Attendance Report</h1>
+    <p class="text-muted small mb-0">Detailed audit of member check-in frequency and facility workout durations</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button onclick="window.printReport()" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i> Print Report
+    </button>
+    <a href="{{ url_for('reports.export_attendance_csv') }}" class="btn btn-primary-fc btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export to CSV
+    </a>
+  </div>
+</div>
+
+<!-- Summary Cards (Section 42 - NO CHARTS) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Total All-Time Visits</div>
+      <div class="stat-value text-dark">{{ total_visits }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Today's Visits</div>
+      <div class="stat-value text-primary">{{ today_visits }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Currently Inside</div>
+      <div class="stat-value text-success">{{ current_inside }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="fc-card stat-card">
+      <div class="stat-label">Average Visit Time</div>
+      <div class="stat-value text-info fs-3">{{ avg_display }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Period Filters (no-print) -->
+<div class="fc-card p-3 mb-4 no-print">
+  <form method="GET" action="{{ url_for('reports.attendance_report') }}" class="row g-2 align-items-center">
+    <div class="col-6 col-md-4">
+      <select name="period" class="form-select" onchange="if(this.value!=='custom') this.form.submit();">
+        <option value="today" {% if period == 'today' %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if period == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="this_week" {% if period == 'this_week' %}selected{% endif %}>This Week</option>
+        <option value="this_month" {% if period == 'this_month' %}selected{% endif %}>This Month</option>
+        <option value="this_year" {% if period == 'this_year' %}selected{% endif %}>This Year</option>
+        <option value="custom" {% if period == 'custom' %}selected{% endif %}>Custom Date</option>
+      </select>
+    </div>
+    {% if period == 'custom' %}
+      <div class="col-6 col-md-4">
+        <input type="date" name="date" class="form-control" value="{{ custom_date }}" onchange="this.form.submit();">
+      </div>
+    {% endif %}
+    <div class="col-12 col-md-4">
+      <button type="submit" class="btn btn-secondary-fc w-100">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Attendance Detailed Table -->
+<div class="fc-card">
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Member ID</th>
+          <th>Member Name</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Duration</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+          <tr>
+            <td><span class="badge bg-light text-dark border">{{ r.member_id }}</span></td>
+            <td class="fw-bold">{{ r.member_name }}</td>
+            <td>{{ r.check_in|format_datetime }}</td>
+            <td>{{ r.check_out|format_datetime if r.check_out else '-' }}</td>
+            <td class="fw-semibold">{{ r.duration_display or '-' }}</td>
+            <td>
+              {% if r.status == 'Inside' %}
+                <span class="badge-status badge-inside">Inside</span>
+              {% else %}
+                <span class="badge-status badge-status-inactive">Checked Out</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">No attendance logs found for this period.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

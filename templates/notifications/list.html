@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}System Notifications - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">System Alerts & Notifications</h1>
+    <p class="text-muted small mb-0">Dynamic real-time gym events, membership expirations, and traffic warnings</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <form method="POST" action="{{ url_for('notifications.mark_all_read') }}" class="d-inline">
+      <button type="submit" class="btn btn-secondary-fc btn-sm">
+        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('notifications.clear_all') }}" class="d-inline" onsubmit="return confirm('Clear all notifications?');">
+      <button type="submit" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-trash me-1"></i> Clear History
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="fc-card">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('notifications.list_notifications') }}" class="btn btn-sm {% if not type_filter %}btn-dark{% else %}btn-light border{% endif %}">
+        All ({{ notifications|length }})
+      </a>
+      <a href="{{ url_for('notifications.list_notifications', type='warning') }}" class="btn btn-sm {% if type_filter == 'warning' %}btn-warning text-dark{% else %}btn-light border{% endif %}">
+        Expirations
+      </a>
+      <a href="{{ url_for('notifications.list_notifications', type='success') }}" class="btn btn-sm {% if type_filter == 'success' %}btn-success{% else %}btn-light border{% endif %}">
+        Success
+      </a>
+      <a href="{{ url_for('notifications.list_notifications', type='info') }}" class="btn btn-sm {% if type_filter == 'info' %}btn-info text-white{% else %}btn-light border{% endif %}">
+        Activity
+      </a>
+    </div>
+    {% if unread_count > 0 %}
+      <span class="badge bg-danger rounded-pill">{{ unread_count }} unread</span>
+    {% endif %}
+  </div>
+
+  <div class="list-group list-group-flush">
+    {% for n in notifications %}
+      <div class="list-group-item p-3 p-md-4 d-flex align-items-start gap-3 {% if not n.is_read %}bg-light bg-opacity-50{% endif %}">
+        <div class="stat-icon stat-icon-{{ n.type }} mb-0 flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.2rem;">
+          {% if n.type == 'success' %}
+            <i class="bi bi-check-circle-fill"></i>
+          {% elif n.type == 'warning' %}
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          {% elif n.type == 'danger' %}
+            <i class="bi bi-x-circle-fill"></i>
+          {% else %}
+            <i class="bi bi-bell-fill"></i>
+          {% endif %}
+        </div>
+
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-baseline mb-1">
+            <h6 class="fw-bold mb-0 {% if not n.is_read %}text-dark{% else %}text-secondary{% endif %}">
+              {{ n.title }}
+              {% if not n.is_read %}
+                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">NEW</span>
+              {% endif %}
+            </h6>
+            <small class="text-muted">{{ n.created_at|format_datetime }}</small>
+          </div>
+          <p class="text-muted small mb-2">{{ n.message }}</p>
+
+          <div class="d-flex gap-2 align-items-center">
+            {% if n.link %}
+              <a href="{{ n.link }}" class="btn btn-sm btn-link text-primary p-0 text-decoration-none small fw-semibold">
+                View Details &rarr;
+              </a>
+            {% endif %}
+
+            {% if not n.is_read %}
+              <form method="POST" action="{{ url_for('notifications.mark_read', notif_id=n._id) }}" class="ms-auto d-inline">
+                <button type="submit" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.75rem;">
+                  Mark Read
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary"></i>
+        No system notifications currently pending.
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

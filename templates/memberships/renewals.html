@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Membership Renewals Tracker - FITCORE{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Renewals Management</h1>
+    <p class="text-muted small mb-0">Track upcoming membership expirations and process renewals</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{{ url_for('memberships.list_plans') }}" class="btn btn-outline-secondary btn-sm">
+      &larr; View Plans
+    </a>
+  </div>
+</div>
+
+<div class="fc-card">
+  <div class="p-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">MEMBERSHIP EXPIRY STATUS</h6>
+    <span class="badge bg-light text-muted border">{{ members|length }} Members Evaluated</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Member ID</th>
+          <th>Phone</th>
+          <th>Current Plan</th>
+          <th>Expiry Date</th>
+          <th>Status</th>
+          <th class="text-end">Renewal Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+          <tr>
+            <td>
+              <div class="fw-bold">{{ m.full_name }}</div>
+              <small class="text-muted">{{ m.trainer_name or 'No trainer' }}</small>
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ m.member_id }}</span></td>
+            <td>{{ m.phone }}</td>
+            <td><span class="badge bg-light text-primary border">{{ m.plan_name }}</span></td>
+            <td>
+              <div class="{% if m.end_date < today_str %}text-danger fw-bold{% else %}text-dark{% endif %}">
+                {{ m.end_date|format_date }}
+              </div>
+            </td>
+            <td>
+              {% if m.status == 'Expired' or m.end_date < today_str %}
+                <span class="badge-status badge-status-expired">Expired</span>
+              {% else %}
+                <span class="badge-status badge-status-active">Active</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('members.renew_member', member_id=m.member_id) }}" class="btn btn-primary-fc btn-sm">
+                <i class="bi bi-arrow-repeat me-1"></i> Renew Now
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              No members due for renewal at this time.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

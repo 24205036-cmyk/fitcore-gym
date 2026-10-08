@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Record Payment - FITCORE{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('payments.list_payments') }}" class="text-decoration-none text-muted small">
+    &larr; Back to Payments Ledger
+  </a>
+  <h1 class="h3 fw-bold mt-1">Record Member Payment</h1>
+  <p class="text-muted small mb-0">Manually log a membership fee collection, personal training fee, or renewal</p>
+</div>
+
+<div class="row">
+  <div class="col-12 col-lg-7">
+    <div class="fc-card p-4">
+      <form method="POST" action="{{ url_for('payments.add_payment') }}">
+        
+        <div class="mb-3">
+          <label for="member_id" class="form-label">Select Gym Member *</label>
+          <select class="form-select" id="member_id" name="member_id" required>
+            <option value="" disabled {% if not preselected_member_id %}selected{% endif %}>-- Select Member --</option>
+            {% for m in members %}
+              <option value="{{ m.member_id }}" {% if preselected_member_id == m.member_id or (form and form.member_id == m.member_id) %}selected{% endif %}>
+                {{ m.full_name }} ({{ m.member_id }}) - {{ m.plan_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label for="amount" class="form-label">Payment Amount (INR) *</label>
+            <div class="input-group">
+              <span class="input-group-text">₹</span>
+              <input type="number" step="0.01" class="form-control" id="amount" name="amount" min="1" placeholder="e.g. 2500" required value="{{ form.amount if form else '' }}">
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="payment_date" class="form-label">Payment Date & Time</label>
+            <input type="text" class="form-control" id="payment_date" name="payment_date" value="{{ default_now }}">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label for="payment_method" class="form-label">Payment Method *</label>
+            <select class="form-select" id="payment_method" name="payment_method" required>
+              {% for m in methods %}
+                <option value="{{ m }}" {% if m == 'UPI' %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="payment_status" class="form-label">Payment Status *</label>
+            <select class="form-select" id="payment_status" name="payment_status" required>
+              {% for s in statuses %}
+                <option value="{{ s }}" {% if s == 'Paid' %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="transaction_id" class="form-label">Transaction / Reference ID</label>
+          <input type="text" class="form-control" id="transaction_id" name="transaction_id" placeholder="e.g. UPI-1298491823" value="{{ form.transaction_id if form else '' }}">
+        </div>
+
+        <div class="mb-4">
+          <label for="remarks" class="form-label">Remarks / Description</label>
+          <input type="text" class="form-control" id="remarks" name="remarks" placeholder="e.g. Quarterly membership payment" value="{{ form.remarks if form else '' }}">
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          <a href="{{ url_for('payments.list_payments') }}" class="btn btn-secondary-fc">Cancel</a>
+          <button type="submit" class="btn btn-primary-fc px-4">
+            <i class="bi bi-check-circle me-1"></i> Submit Payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
